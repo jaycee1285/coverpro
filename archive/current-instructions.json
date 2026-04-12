@@ -1,0 +1,96 @@
+{
+  "current_instructions": {
+    "output_template_per_job": [
+      "Job Title",
+      "Company",
+      "Summary (generated; 80–110 characters; ends with a period; emphasize product development and technical execution)",
+      "Gestallt (separate section): 3 bullets (each 80–110 characters; emphasize user research, architecture decisions, HIPAA compliance, shipping)",
+      "CoverPro (separate section): 2 bullets (each 80–110 characters; emphasize problem identification, quality gates, automated systems)",
+      "Daylight (separate section): 2 bullets (each 80–110 characters; emphasize context recovery, multi-project management, automation)",
+      "labDemand: 1 bullet (80–110 characters; reframe for roadmap management across verticals; ends with a period)",
+      "Focus Digital: 2 bullets (each 80–110 characters; reframe for stakeholder communication and requirements gathering; no SEO metrics; ends with periods)",
+      "Lear Marketing: 1 bullet (80–110 characters; reframe for stakeholder presentations to non-marketing execs; ends with a period; no Toyota/eBay-specific claims)",
+      "WAR Cover Letter (separate document; NOT bound to 80–110 character lines)",
+      "NOTE: Do NOT output a separate 'Cover Letter (JD Questions Only)' section. If the JD asks questions, answer them under the WAR Cover Letter heading. Omit any section with no content."
+    ],
+    "resume_line_rules": {
+      "apply_to": ["Summary", "all Technical Projects bullets", "labDemand bullet", "Focus Digital bullets", "Lear Marketing bullet"],
+      "line_length": "80–110 characters per line",
+      "punctuation": "Summary and every bullet must end with a period.",
+      "truthfulness": "Do not invent experience, employers, tools, titles, or results.",
+      "tailoring": "Tailor bullets to each JD by reframing real experience, not by making new claims."
+    },
+    "numbers_and_style": {
+      "style_guide": "Follow AP style for numbers.",
+      "hard_rule": "Do NOT spell out numbers to hit character limits (e.g., do not write 'two point four').",
+      "preferred_forms_examples": ["16 Cloud Functions", "3 user roles", "4-job concurrency", "17 projects", "2-repo batches"],
+      "consistency": "Keep number formats clean and recognizable; avoid gimmicks for length compliance."
+    },
+    "technical_projects_guidance": {
+      "gestallt_bullets": [
+        "Emphasize: user research (SLPs, educators, families), architecture decisions (multi-tenant, RBAC, JWT), HIPAA compliance, shipping to production",
+        "Avoid: Low-level implementation details, technology bragging without outcome context"
+      ],
+      "coverpro_bullets": [
+        "Emphasize: problem identification (existing tools slow/expensive), quality gates (linter, similarity detection), automated systems (repair loops)",
+        "Avoid: AI buzzwords, over-technical descriptions of pipeline"
+      ],
+      "daylight_bullets": [
+        "Emphasize: context recovery architecture, multi-project management (17 repos), automation (staleness detection, blocker extraction)",
+        "Avoid: Personal workflow details, overly meta descriptions"
+      ]
+    },
+    "focus_digital_pm_reframing": {
+      "reframe_for": "Stakeholder communication and requirements gathering, not SEO execution",
+      "allowed_angles": [
+        "Presenting strategy to non-marketing stakeholders",
+        "Requirements gathering from B2B clients (RF testing labs, industrial manufacturers)",
+        "Translating technical needs into deliverable outcomes",
+        "Managing roadmap across multiple client verticals"
+      ],
+      "forbidden": "Do NOT include SEO metrics (+631% impressions, +366% traffic, etc.) in PM-focused resumes. Those belong in content strategist roles."
+    },
+    "lear_marketing_pm_reframing": {
+      "reframe_for": "Stakeholder presentations and GTM strategy for technical products",
+      "allowed_angles": [
+        "Presenting Ahrefs/SEMRush strategy to founders with no marketing background",
+        "Building modular systems for early-stage companies without marketing ops",
+        "Translating technical product capabilities into market positioning"
+      ],
+      "no_toyota_or_ebay_claims": "LM bullets cannot reference Toyota/eBay-specific bullets, outcomes, or brand claims.",
+      "allowed": "General transferable skills and outcomes that are truly attributable to Lear Marketing work."
+    },
+    "war_cover_letter_definition": {
+      "structure": [
+        "Play 1: Address their top need with one of my strongest, most relevant strengths (win the round).",
+        "Play 2: Match a second need with another strength/experience (different angle, still relevant).",
+        "Play 3: Match a third need with a third strength/experience (show range and judgment).",
+        "Close: Direct call-to-action to schedule an interview; include risk-reversal cues (confidence without fluff)."
+      ],
+      "writing_quality_expectations": [
+        "Vary sentence structure; avoid repetitive 'Need identified → I solve it' loops.",
+        "Write with flow, persuasion, and empathy; concrete, human, non-generic.",
+        "No formatting constraints on the cover letter beyond topical fit and clarity."
+      ],
+      "pm_cover_letter_angles": [
+        "Lead with shipped products (Gestallt, CoverPro, Daylight) as PM portfolio",
+        "Use marketing background to demonstrate stakeholder communication and requirements gathering",
+        "Emphasize full-stack execution (can write spec, build prototype, measure outcome)",
+        "Position as 'PM who can build' - eliminates PM→eng translation layer"
+      ]
+    },
+    "quality_bar": {
+      "tailor_per_jd": "You cannot reuse identical project/marketing bullets across unrelated JDs.",
+      "reframing_allowed": "You can reframe marketing work as PM skills (stakeholder communication, roadmap management, requirements gathering) without making anything up.",
+      "avoid_bad_habits": [
+        "No half-true bullets padded by wordy workarounds.",
+        "No number spell-outs to game character limits.",
+        "No vague filler ('responsible for', 'worked on') when a stronger, truthful action exists."
+      ]
+    },
+    "bullet_count_target": {
+      "total_bullets": "12 bullets total (Summary + 7 projects + 4 marketing)",
+      "rationale": "This allocation fits on one page while leading with product work for PM roles."
+    }
+  }
+}

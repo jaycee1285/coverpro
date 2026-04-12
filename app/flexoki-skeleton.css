@@ -1,0 +1,170 @@
+/* src/styles/themes/flexoki.skeleton.css
+   Built from your kitty Flexoki Light/Dark configs.
+   - Primary = blue (color4/color12)
+   - Secondary = magenta (color5/color13)
+   - Tertiary / Success = green (color2/color10)
+   - Warning = yellow (color3/color11)
+   - Error = red (color1/color9)
+*/
+
+[data-theme="flexoki-light"] {
+  /* --- Surfaces (paper -> ink) --- */
+  --color-surface-50:  255 252 240; /* #FFFCF0 */
+  --color-surface-100: 242 240 229; /* #F2F0E5 */
+  --color-surface-200: 230 228 217; /* #E6E4D9 */
+  --color-surface-300: 206 205 195; /* #CECDC3 */
+  --color-surface-400: 182 181 172;
+  --color-surface-500: 163 162 154;
+  --color-surface-600: 144 143 136;
+  --color-surface-700: 111 110 105; /* #6F6E69 */
+  --color-surface-800:  73  72  69;
+  --color-surface-900:  49  48  46;
+  --color-surface-950:  16  15  15; /* #100F0F */
+
+  /* --- Primary (blue #4385BE -> #205EA6) --- */
+  --color-primary-50:  232 239 247;
+  --color-primary-100: 217 230 242;
+  --color-primary-200: 194 214 235;
+  --color-primary-300: 167 196 228;
+  --color-primary-400: 129 169 213;
+  --color-primary-500:  67 133 190; /* #4385BE */
+  --color-primary-600:  48 110 175;
+  --color-primary-700:  32  94 166; /* #205EA6 */
+  --color-primary-800:  25  76 135;
+  --color-primary-900:  22  64 114;
+  --color-primary-950:  21  55  98;
+
+  /* --- Secondary (magenta #CE5D97 -> #A02F6F) --- */
+  --color-secondary-50:  251 232 241;
+  --color-secondary-100: 249 216 232;
+  --color-secondary-200: 245 193 218;
+  --color-secondary-300: 240 165 203;
+  --color-secondary-400: 233 127 177;
+  --color-secondary-500: 206  93 151; /* #CE5D97 */
+  --color-secondary-600: 176  70 129;
+  --color-secondary-700: 160  47 111; /* #A02F6F */
+  --color-secondary-800: 128  37  90;
+  --color-secondary-900: 107  31  75;
+  --color-secondary-950:  92  27  65;
+
+  /* --- Tertiary (green #879A39 -> #66800B) --- */
+  --color-tertiary-50:  244 247 232;
+  --color-tertiary-100: 236 241 217;
+  --color-tertiary-200: 222 232 194;
+  --color-tertiary-300: 204 220 167;
+  --color-tertiary-400: 176 202 129;
+  --color-tertiary-500: 135 154  57; /* #879A39 */
+  --color-tertiary-600: 107 127  27;
+  --color-tertiary-700: 102 128  11; /* #66800B */
+  --color-tertiary-800:  83 104  11;
+  --color-tertiary-900:  70  87  11;
+  --color-tertiary-950:  60  74  12;
+
+  /* --- Accent (cyan #3AA99F -> #24837B) --- */
+  --color-accent-50:  230 246 245;
+  --color-accent-100: 214 242 240;
+  --color-accent-200: 189 235 231;
+  --color-accent-300: 160 226 220;
+  --color-accent-400: 117 209 200;
+  --color-accent-500:  58 169 159; /* #3AA99F */
+  --color-accent-600:  41 130 125;
+  --color-accent-700:  36 131 123; /* #24837B */
+  --color-accent-800:  30 107 100;
+  --color-accent-900:  25  90  84;
+  --color-accent-950:  22  77  72;
+
+  /* --- Semantic --- */
+  --color-success-500: 135 154  57; /* green */
+  --color-warning-500: 208 162  21; /* #D0A215 */
+  --color-error-500:   209  77  65; /* #D14D41 */
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-50)); /* #FFFCF0 */
+  --body-text-color:       16  15  15;                   /* #100F0F */
+
+  --theme-selection-bg:    206 205 195;                  /* #CECDC3 */
+  --theme-selection-fg:    16  15  15;                   /* #100F0F */
+
+  /* handy if you want borders to match your kitty border colors */
+  --theme-border-active:   209  77  65;                  /* #D14D41 */
+  --theme-border-inactive: 206 205 195;                  /* #CECDC3 */
+}
+
+[data-theme="flexoki-dark"] {
+  /* --- Surfaces (paper -> ink) --- */
+  --color-surface-50:  255 252 240; /* #FFFCF0 */
+  --color-surface-100: 242 240 229; /* #F2F0E5 */
+  --color-surface-200: 135 133 128; /* #878580 */
+  --color-surface-300:  64  62  60; /* #403E3C */
+  --color-surface-400:  58  56  54;
+  --color-surface-500:  53  52  50;
+  --color-surface-600:  48  47  46;
+  --color-surface-700:  40  39  38; /* #282726 */
+  --color-surface-800:  30  29  29;
+  --color-surface-900:  24  23  23;
+  --color-surface-950:  16  15  15; /* #100F0F */
+
+  /* --- Primary (blue bright on dark: #4385BE -> #205EA6) --- */
+  --color-primary-50:  232 239 247;
+  --color-primary-100: 217 230 242;
+  --color-primary-200: 194 214 235;
+  --color-primary-300: 167 196 228;
+  --color-primary-400: 129 169 213;
+  --color-primary-500:  67 133 190; /* #4385BE */
+  --color-primary-600:  48 110 175;
+  --color-primary-700:  32  94 166; /* #205EA6 */
+  --color-primary-800:  27  76 135;
+  --color-primary-900:  24  62 111;
+  --color-primary-950:  20  32  48;
+
+  /* --- Secondary (magenta #CE5D97 -> #A02F6F) --- */
+  --color-secondary-50:  251 232 241;
+  --color-secondary-100: 249 216 232;
+  --color-secondary-200: 245 193 218;
+  --color-secondary-300: 240 165 203;
+  --color-secondary-400: 233 127 177;
+  --color-secondary-500: 206  93 151; /* #CE5D97 */
+  --color-secondary-600: 176  70 129;
+  --color-secondary-700: 160  47 111; /* #A02F6F */
+  --color-secondary-800: 128  37  90;
+  --color-secondary-900: 101  30  71;
+  --color-secondary-950:  56  23  41;
+
+  /* --- Tertiary (green #879A39 -> #66800B) --- */
+  --color-tertiary-50:  244 247 232;
+  --color-tertiary-100: 236 241 217;
+  --color-tertiary-200: 222 232 194;
+  --color-tertiary-300: 204 220 167;
+  --color-tertiary-400: 176 202 129;
+  --color-tertiary-500: 135 154  57; /* #879A39 */
+  --color-tertiary-600: 107 127  27;
+  --color-tertiary-700: 102 128  11; /* #66800B */
+  --color-tertiary-800:  83 104  11;
+  --color-tertiary-900:  65  82  11;
+  --color-tertiary-950:  36  34  15;
+
+  /* --- Accent (cyan #3AA99F -> #24837B) --- */
+  --color-accent-50:  230 246 245;
+  --color-accent-100: 214 242 240;
+  --color-accent-200: 189 235 231;
+  --color-accent-300: 160 226 220;
+  --color-accent-400: 117 209 200;
+  --color-accent-500:  58 169 159; /* #3AA99F */
+  --color-accent-600:  41 130 125;
+  --color-accent-700:  36 131 123; /* #24837B */
+  --color-accent-800:  30 107 100;
+  --color-accent-900:  25  84  80;
+  --color-accent-950:  19  47  46;
+
+  /* --- Semantic --- */
+  --color-success-500: 135 154  57; /* green */
+  --color-warning-500: 208 162  21; /* #D0A215 */
+  --color-error-500:   175  48  41; /* #AF3029 */
+
+  /* --- App defaults --- */
+  --body-background-color: rgb(var(--color-surface-950)); /* #100F0F */
+  --body-text-color:       255 252 240;                   /* #FFFCF0 */
+
+  --theme-selection-bg:    64  62  60;                    /* #403E3C */
+  --theme-selection-fg:    255 252 240;                   /* #FFFCF0 */
+}

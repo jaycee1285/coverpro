@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Overhead view of paper with illegible handwritten script">
+  <rect width="512" height="512" fill="#ffffff"/>
+
+  <!-- Paper -->
+  <g transform="translate(96 64)">
+    <rect x="0" y="0" width="320" height="384" rx="10" ry="10" fill="#ffffff" stroke="#000000" stroke-width="8"/>
+    
+    <!-- subtle folded corner -->
+    <path d="M264 0 H320 V56" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M264 0 C268 20 284 40 320 56" fill="none" stroke="#000000" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- Illegible script lines -->
+    <g fill="none" stroke="#000000" stroke-linecap="round" stroke-linejoin="round">
+      <!-- line 1 -->
+      <path d="M34 70
+               C52 58, 70 86, 88 72
+               S122 86, 138 70
+               S172 84, 188 72
+               S220 86, 238 70
+               S270 84, 288 72" stroke-width="5"/>
+      <path d="M50 83 C56 77, 62 90, 70 84" stroke-width="3"/>
+      <path d="M154 82 C162 75, 168 91, 178 82" stroke-width="3"/>
+
+      <!-- line 2 -->
+      <path d="M32 112
+               C46 100, 62 126, 78 112
+               S110 124, 126 110
+               S158 125, 176 112
+               S208 124, 226 110
+               S258 126, 286 112" stroke-width="5"/>
+      <path d="M96 125 C104 118, 112 132, 122 124" stroke-width="3"/>
+      <path d="M206 124 C214 116, 220 132, 232 122" stroke-width="3"/>
+
+      <!-- line 3 -->
+      <path d="M36 154
+               C54 144, 70 168, 92 154
+               S130 170, 150 154
+               S188 168, 206 154
+               S242 168, 264 154" stroke-width="5"/>
+      <!-- removed circle/cut glyph from right side -->
+
+      <!-- line 4 -->
+      <path d="M34 198
+               C48 184, 64 212, 84 198
+               S118 214, 140 198
+               S176 214, 198 198
+               S232 214, 254 198
+               S286 210, 292 198" stroke-width="5"/>
+      <path d="M66 212 C76 206, 82 220, 94 210" stroke-width="3"/>
+      <path d="M166 212 C174 206, 184 220, 194 212" stroke-width="3"/>
+
+      <!-- line 5 -->
+      <path d="M34 240
+               C50 228, 68 252, 88 238
+               S122 254, 144 240
+               S178 252, 198 240
+               S232 252, 252 238
+               S284 252, 290 238" stroke-width="5"/>
+      <path d="M106 252 C112 246, 118 258, 126 252" stroke-width="3"/>
+      <path d="M220 252 C228 246, 234 260, 244 252" stroke-width="3"/>
+
+      <!-- line 6 (second-to-last full-ish line / shorter line) -->
+      <path d="M36 284
+               C52 272, 70 294, 88 282
+               S120 296, 142 282
+               S174 296, 194 282
+               S228 296, 248 282" stroke-width="5"/>
+      <!-- moved circle/cut glyph to left side -->
+      <path d="M58 282 C68 276, 74 286, 66 292 C60 297, 52 290, 58 282" stroke-width="4"/>
+      <path d="M260 282 C270 276, 280 288, 288 282" stroke-width="4"/>
+
+      <!-- line 7 -->
+      <path d="M36 326
+               C52 312, 70 340, 90 326
+               S126 340, 148 326
+               S182 340, 202 326
+               S238 340, 260 326
+               S288 336, 292 326" stroke-width="5"/>
+
+      <!-- signature-ish scribble -->
+      <path d="M190 354
+               C202 344, 214 370, 228 354
+               C236 346, 246 366, 258 354
+               C266 346, 278 364, 292 352" stroke-width="5"/>
+      <path d="M188 368 C212 372, 248 372, 294 366" stroke-width="3"/>
+    </g>
+  </g>
+</svg>

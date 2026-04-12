@@ -1,0 +1,139 @@
+{
+  "current_instructions": {
+    "CRITICAL_REQUIREMENTS": [
+      "You MUST generate ALL sections listed below with EXACT bullet counts specified.",
+      "Do NOT omit any section. Do NOT make editorial decisions about what's 'strongest'.",
+      "Each project (Gestallt, CoverPro, ContextMax) REQUIRES its own separate markdown heading.",
+      "Example structure:",
+      "## TECHNICAL PROJECTS",
+      "### GESTALLT",
+      "• [bullet 1]",
+      "• [bullet 2]",
+      "• [bullet 3]",
+      "",
+      "### COVERPRO",
+      "• [bullet 1]",
+      "• [bullet 2]",
+      "",
+      "### CONTEXTMAX",
+      "• [bullet 1]",
+      "• [bullet 2]"
+    ],
+    "output_template_per_job": [
+      "Job Title",
+      "Company",
+      "Summary (generated; 80–110 characters; ends with a period; emphasize product development and technical execution)",
+      "REQUIRED SECTION - Gestallt: EXACTLY 3 bullets (each 80–110 characters; emphasize user research, architecture decisions, HIPAA compliance, shipping)",
+      "REQUIRED SECTION - CoverPro: EXACTLY 2 bullets (each 80–110 characters; emphasize problem identification, quality gates, automated systems)",
+      "REQUIRED SECTION - ContextMax: EXACTLY 2 bullets (each 80–110 characters; select from canonical bullets; emphasize context recovery, multi-project management, automation)",
+      "labDemand: EXACTLY 1 bullet (80–110 characters; reframe for roadmap management across verticals; ends with a period)",
+      "Focus Digital: EXACTLY 2 bullets (each 80–110 characters; reframe for stakeholder communication and requirements gathering; no SEO metrics; ends with periods)",
+      "Lear Marketing: EXACTLY 1 bullet (80–110 characters; reframe for stakeholder presentations to non-marketing execs; ends with a period; no Toyota/eBay-specific claims)",
+      "WAR Cover Letter (separate document; NOT bound to 80–110 character lines)",
+      "NOTE: Do NOT output a separate 'Cover Letter (JD Questions Only)' section. If the JD asks questions, answer them under the WAR Cover Letter heading."
+    ],
+    "resume_line_rules": {
+      "apply_to": ["Summary", "all Technical Projects bullets", "labDemand bullet", "Focus Digital bullets", "Lear Marketing bullet"],
+      "line_length": "80–110 characters per line",
+      "punctuation": "Summary and every bullet must end with a period.",
+      "truthfulness": "Do not invent experience, employers, tools, titles, or results.",
+      "tailoring": "Tailor bullets to each JD by reframing real experience, not by making new claims."
+    },
+    "numbers_and_style": {
+      "style_guide": "Follow AP style for numbers.",
+      "hard_rule": "Do NOT spell out numbers to hit character limits (e.g., do not write 'two point four').",
+      "preferred_forms_examples": ["16 Cloud Functions", "3 user roles", "4-job concurrency", "17 projects", "2-repo batches"],
+      "consistency": "Keep number formats clean and recognizable; avoid gimmicks for length compliance."
+    },
+    "technical_projects_guidance": {
+      "CRITICAL": "You MUST create separate sections for ALL THREE projects below. Each project gets its own markdown heading and exact bullet count. Do NOT combine them under one heading. Do NOT omit any project.",
+      "SELECTION_RULE": "For each project, SELECT bullets from the canonical options below. You may lightly reword to match JD language, but the core claim and structure must match a canonical bullet. Do NOT invent new bullets.",
+      "gestallt": {
+        "required_count": 3,
+        "select_from": [
+          "Architected RBAC with cryptographic JWT isolation for team switching, preventing cross-client data access.",
+          "Designed tenant-scoped search with 1-hour key expiry—traded brief cache exposure for simpler architecture.",
+          "Built immutable audit log with cryptographic timestamps for team actions, meeting HIPAA forensic requirements.",
+          "Implemented defense-in-depth: Firestore rules, server verification, JWT claims prevent cross-team PII access.",
+          "Deployed 16 Cloud Functions as auth gatekeepers—verify membership and prevent permission escalation."
+        ],
+        "selection_notes": "Bullets 1+3 are strongest for PM roles (RBAC architecture + HIPAA compliance). Bullet 2 shows trade-off thinking. Bullets 4+5 are backups for security-engineering-focused JDs."
+      },
+      "coverpro": {
+        "required_count": 2,
+        "select_from": [
+          "Architected multi-backend pipeline supporting 3 agent and 3 API backends—cost-optimized switching.",
+          "Built repair system regenerating only broken sections—cuts API costs 60% and iteration time 80%.",
+          "Designed fact-locking linter preventing hallucination while enabling narrative and positioning variants.",
+          "Designed model routing—Sonnet for drafting, Opus for critique—balances quality and cost per task."
+        ],
+        "selection_notes": "All 4 are strong. Pick 2 most relevant to JD. Bullet 1 shows systems architecture, bullet 2 shows iteration, bullet 3 shows quality thinking, bullet 4 shows cost optimization."
+      },
+      "contextmax": {
+        "display_name": "ContextMax",
+        "tagline": "AI-Driven Multi-Project Orchestration System",
+        "required_count": 2,
+        "select_from": [
+          "Built context recovery automation across 17 repos—staleness detection, blocker extraction, ownership tagging.",
+          "Architected three-layer system—source of truth, dynamic view, snapshot—eliminating context drift.",
+          "Designed knowledge transfer protocol reducing agent onboarding context 80%—interview-driven docs pipeline."
+        ],
+        "selection_notes": "Bullet 1 leads with scale + automation specifics (17 repos). Bullet 2 shows architectural thinking. Bullet 3 is the quantitative outcome—strongest when JD values onboarding, documentation, or knowledge management. Default pairing: bullet 2 + bullet 3 (architecture + measurable result)."
+      }
+    },
+    "focus_digital_pm_reframing": {
+      "reframe_for": "Stakeholder communication and requirements gathering, not SEO execution",
+      "allowed_angles": [
+        "Presenting strategy to non-marketing stakeholders",
+        "Requirements gathering from B2B clients (RF testing labs, industrial manufacturers)",
+        "Translating technical needs into deliverable outcomes",
+        "Managing roadmap across multiple client verticals"
+      ],
+      "forbidden": "Do NOT include SEO metrics (+631% impressions, +366% traffic, etc.) in PM-focused resumes. Those belong in content strategist roles."
+    },
+    "lear_marketing_pm_reframing": {
+      "reframe_for": "Stakeholder presentations and GTM strategy for technical products",
+      "allowed_angles": [
+        "Presenting Ahrefs/SEMRush strategy to founders with no marketing background",
+        "Building modular systems for early-stage companies without marketing ops",
+        "Translating technical product capabilities into market positioning"
+      ],
+      "no_toyota_or_ebay_claims": "LM bullets cannot reference Toyota/eBay-specific bullets, outcomes, or brand claims.",
+      "allowed": "General transferable skills and outcomes that are truly attributable to Lear Marketing work."
+    },
+    "war_cover_letter_definition": {
+      "structure": [
+        "Play 1: Address their top need with one of my strongest, most relevant strengths (win the round).",
+        "Play 2: Match a second need with another strength/experience (different angle, still relevant).",
+        "Play 3: Match a third need with a third strength/experience (show range and judgment).",
+        "Close: Direct call-to-action to schedule an interview; include risk-reversal cues (confidence without fluff)."
+      ],
+      "writing_quality_expectations": [
+        "Vary sentence structure; avoid repetitive 'Need identified → I solve it' loops.",
+        "Write with flow, persuasion, and empathy; concrete, human, non-generic.",
+        "No formatting constraints on the cover letter beyond topical fit and clarity."
+      ],
+      "pm_cover_letter_angles": [
+        "Lead with shipped products (Gestallt, CoverPro, ContextMax) as PM portfolio",
+        "Use marketing background to demonstrate stakeholder communication and requirements gathering",
+        "Emphasize full-stack execution (can write spec, build prototype, measure outcome)",
+        "Position as 'PM who can build' - eliminates PM→eng translation layer"
+      ]
+    },
+    "quality_bar": {
+      "tailor_per_jd": "You cannot reuse identical project/marketing bullets across unrelated JDs.",
+      "reframing_allowed": "You can reframe marketing work as PM skills (stakeholder communication, roadmap management, requirements gathering) without making anything up.",
+      "avoid_bad_habits": [
+        "No half-true bullets padded by wordy workarounds.",
+        "No number spell-outs to game character limits.",
+        "No vague filler ('responsible for', 'worked on') when a stronger, truthful action exists."
+      ]
+    },
+    "bullet_count_target": {
+      "total_bullets": "12 bullets total (Summary + 7 projects + 4 marketing)",
+      "breakdown": "Gestallt (3) + CoverPro (2) + ContextMax (2) + labDemand (1) + Focus Digital (2) + Lear Marketing (1) = 11 bullets + 1 summary line",
+      "rationale": "This allocation fits on one page while leading with product work for PM roles.",
+      "MANDATORY": "ALL THREE project sections (Gestallt, CoverPro, ContextMax) are REQUIRED. Do not omit any."
+    }
+  }
+}

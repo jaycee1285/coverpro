@@ -1,0 +1,63 @@
+{
+  "current_instructions": {
+    "output_template_per_job": [
+      "Job Title",
+      "Company",
+      "Summary (generated; 80–110 characters; ends with a period)",
+      "labDemand: 1 bullet (one-liner; 80–110 characters; ends with a period)",
+      "Focus Digital: 5 bullets (generated; each 80–110 characters; each ends with a period)",
+      "First Page Sage: 3 bullets (generated; each 80–110 characters; each ends with a period)",
+      "Lear Marketing: 3 bullets (generated; each 80–110 characters; each ends with a period; no Toyota/eBay-specific claims)",
+      "WAR Cover Letter (separate document; NOT bound to 80–110 character lines)",
+      "NOTE: Do NOT output a separate 'Cover Letter (JD Questions Only)' section. If the JD asks questions, answer them under the WAR Cover Letter heading. Omit any section with no content."
+    ],
+    "resume_line_rules": {
+      "apply_to": ["Summary", "labDemand bullets", "Focus Digital bullets", "First Page Sage bullets", "Lear Marketing bullets"],
+      "line_length": "80–110 characters per line",
+      "punctuation": "Summary and every bullet must end with a period.",
+      "truthfulness": "Do not invent experience, employers, tools, titles, or results.",
+      "tailoring": "Tailor bullets to each JD by reframing real experience, not by making new claims."
+    },
+    "numbers_and_style": {
+      "style_guide": "Follow AP style for numbers.",
+      "hard_rule": "Do NOT spell out numbers to hit character limits (e.g., do not write 'two point four').",
+      "preferred_forms_examples": ["51%", "12%", "90 days", "14 opportunities", "2.4x", "3.5x"],
+      "consistency": "Keep number formats clean and recognizable; avoid gimmicks for length compliance."
+    },
+    "focus_digital_required_metrics": {
+      "must_appear_in_every_FD_block_somewhere": [
+        "+51% impressions and +12% clicks (within 90 days).",
+        "14 qualified form opportunities.",
+        "~3.5x YoY organic sessions.",
+        "~2.4x engagement via TL;DR/proof blocks/AEO FAQs."
+      ],
+      "note": "These can be rephrased, but the numeric facts must remain and stay in AP-style forms."
+    },
+    "lear_marketing_constraints": {
+      "no_toyota_or_ebay_claims": "LM bullets cannot reference Toyota/eBay-specific bullets, outcomes, or brand claims.",
+      "allowed": "General transferable skills and outcomes that are truly attributable to Lear Marketing work."
+    },
+    "war_cover_letter_definition": {
+      "structure": [
+        "Play 1: Address their top need with one of my strongest, most relevant strengths (win the round).",
+        "Play 2: Match a second need with another strength/experience (different angle, still relevant).",
+        "Play 3: Match a third need with a third strength/experience (show range and judgment).",
+        "Close: Direct call-to-action to schedule an interview; include risk-reversal cues (confidence without fluff)."
+      ],
+      "writing_quality_expectations": [
+        "Vary sentence structure; avoid repetitive 'Need identified → I solve it' loops.",
+        "Write with flow, persuasion, and empathy; concrete, human, non-generic.",
+        "No formatting constraints on the cover letter beyond topical fit and clarity."
+      ]
+    },
+    "quality_bar": {
+      "tailor_per_jd": "You cannot reuse identical FD/FPS/LM bullets across unrelated JDs.",
+      "reframing_allowed": "You can reframe content strategy/ops/PMM-adjacent work for PMM roles without making anything up.",
+      "avoid_bad_habits": [
+        "No half-true bullets padded by wordy workarounds.",
+        "No number spell-outs to game character limits.",
+        "No vague filler ('responsible for', 'worked on') when a stronger, truthful action exists."
+      ]
+    }
+  }
+}

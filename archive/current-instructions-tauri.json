@@ -1,0 +1,4 @@
+{
+  "model": "sonnet",
+  "prompt": "Write 5 bullet points for the Focus Digital Experience section. Each bullet must be 80-110 characters and end with a period. Include at least 4 of these metrics: 51%, 12%, 14 qualified, 3.5x, 2.4x. Do NOT use em-dashes (—). The content should highlight: opportunity generation, impressions/clicks growth, engagement improvements, traffic scaling, and campaign quality.\n\nReturn ONLY the 5 bullet points, nothing else."
+}

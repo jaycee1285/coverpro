@@ -1,0 +1,79 @@
+{
+  "current_instructions": {
+    "output_template_per_job": [
+      "Job Title",
+      "Company",
+      "Summary (generated; 80–110 characters; ends with a period; emphasize content strategy and SEO expertise)",
+      "labDemand: 1 bullet (one-liner; 80–110 characters; ends with a period)",
+      "Focus Digital: 5 bullets (generated; each 80–110 characters; each ends with a period; MUST include required metrics)",
+      "First Page Sage: 3 bullets (generated; each 80–110 characters; each ends with a period)",
+      "Lear Marketing: 3 bullets (generated; each 80–110 characters; each ends with a period; no Toyota/eBay-specific claims)",
+      "Technical Projects (if relevant): Gestallt only, 1 bullet (80–110 characters; brief credibility signal; ends with a period)",
+      "WAR Cover Letter (separate document; NOT bound to 80–110 character lines)",
+      "NOTE: Do NOT output a separate 'Cover Letter (JD Questions Only)' section. If the JD asks questions, answer them under the WAR Cover Letter heading. Omit any section with no content."
+    ],
+    "resume_line_rules": {
+      "apply_to": ["Summary", "labDemand bullets", "Focus Digital bullets", "First Page Sage bullets", "Lear Marketing bullets", "Technical Projects bullet"],
+      "line_length": "80–110 characters per line",
+      "punctuation": "Summary and every bullet must end with a period.",
+      "truthfulness": "Do not invent experience, employers, tools, titles, or results.",
+      "tailoring": "Tailor bullets to each JD by reframing real experience, not by making new claims."
+    },
+    "numbers_and_style": {
+      "style_guide": "Follow AP style for numbers.",
+      "hard_rule": "Do NOT spell out numbers to hit character limits (e.g., do not write 'two point four').",
+      "preferred_forms_examples": ["51%", "12%", "90 days", "14 opportunities", "2.4x", "3.5x", "631%", "366%"],
+      "consistency": "Keep number formats clean and recognizable; avoid gimmicks for length compliance."
+    },
+    "focus_digital_required_metrics": {
+      "must_appear_in_every_FD_block_somewhere": [
+        "+51% impressions and +12% clicks (within 90 days).",
+        "14 qualified form opportunities.",
+        "~3.5x YoY organic sessions.",
+        "~2.4x engagement via TL;DR/proof blocks/AEO FAQs."
+      ],
+      "note": "These can be rephrased, but the numeric facts must remain and stay in AP-style forms. This is critical for content strategist roles."
+    },
+    "lear_marketing_constraints": {
+      "no_toyota_or_ebay_claims": "LM bullets cannot reference Toyota/eBay-specific bullets, outcomes, or brand claims.",
+      "allowed": "General transferable skills and outcomes that are truly attributable to Lear Marketing work."
+    },
+    "technical_projects_guidance": {
+      "gestallt_only": "For content strategist roles, include only Gestallt with 1 bullet as technical credibility signal.",
+      "bullet_guidance": "Brief mention of HIPAA-compliant multi-tenant system. Shows technical capability without dominating the resume.",
+      "omit_coverpro_daylight": "Do not include CoverPro or Daylight for content-focused roles. They're not relevant and take space from content work."
+    },
+    "war_cover_letter_definition": {
+      "structure": [
+        "Play 1: Address their top need with one of my strongest, most relevant strengths (win the round).",
+        "Play 2: Match a second need with another strength/experience (different angle, still relevant).",
+        "Play 3: Match a third need with a third strength/experience (show range and judgment).",
+        "Close: Direct call-to-action to schedule an interview; include risk-reversal cues (confidence without fluff)."
+      ],
+      "writing_quality_expectations": [
+        "Vary sentence structure; avoid repetitive 'Need identified → I solve it' loops.",
+        "Write with flow, persuasion, and empathy; concrete, human, non-generic.",
+        "No formatting constraints on the cover letter beyond topical fit and clarity."
+      ],
+      "content_cover_letter_angles": [
+        "Lead with Focus Digital metrics (+631% impressions, 14 qualified leads/month)",
+        "Emphasize technical credibility (can write about products they actually understand)",
+        "Use Gestallt as proof of technical depth (not just a 'technical marketer')",
+        "Position as content strategist who codes, not coder who writes content"
+      ]
+    },
+    "quality_bar": {
+      "tailor_per_jd": "You cannot reuse identical FD/FPS/LM bullets across unrelated JDs.",
+      "reframing_allowed": "You can reframe content strategy/ops/PMM-adjacent work for PMM roles without making anything up.",
+      "avoid_bad_habits": [
+        "No half-true bullets padded by wordy workarounds.",
+        "No number spell-outs to game character limits.",
+        "No vague filler ('responsible for', 'worked on') when a stronger, truthful action exists."
+      ]
+    },
+    "bullet_count_target": {
+      "total_bullets": "14 bullets total (Summary + 1 labDemand + 5 Focus Digital + 3 First Page Sage + 3 Lear Marketing + 1 Gestallt)",
+      "rationale": "Content-focused roles can support slightly more bullets since there are no multi-bullet project sections. Still fits on one page."
+    }
+  }
+}

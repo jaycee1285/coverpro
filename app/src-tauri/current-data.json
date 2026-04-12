@@ -1,0 +1,55 @@
+{
+  "name": "John Michael Carr",
+  "title": "Content Marketing Manager",
+  "company": "mabl",
+  "summary": "Technical content strategist creating SEO editorial engines that convert software value into pipeline.",
+  "experience": [
+    {
+      "company": "labDemand",
+      "title": "Content Strategist",
+      "bullets": [
+        "Established laboratory knowledge hubs connecting test methods with buyer intent and measurable outcomes.",
+        "Deployed structured content assets to capture expanded search footprint and query opportunities.",
+        "Propelled client search visibility from page-2 to page-1, generating $25K contract through organic reach.",
+        "Designed content architectures across six verticals spanning landing pages, industry guides, and template assets.",
+        "Founded content consultancy targeting B2B audiences through developer tools ecosystem research."
+      ]
+    },
+    {
+      "company": "Focus Digital",
+      "title": "Content Strategist",
+      "bullets": [
+        "Drove +51% impressions and +12% clicks within 90 days through structured content experiments.",
+        "Expanded organic sessions ~3.5x year-over-year by testing topic clusters and mapping conversion paths.",
+        "Generated 14 qualified form opportunities by refining hub-to-LP-to-consult conversion surfaces.",
+        "Increased engagement ~2.4x through iterative content structures informed by on-page behavior metrics.",
+        "Improved blended CAC by connecting campaigns to pipeline through GA4 attribution modeling."
+      ]
+    },
+    {
+      "company": "First Page Sage",
+      "title": "Content Writer",
+      "bullets": [
+        "Authored ~20 articles monthly across HVAC, solar, and building materials including comprehensive spec guides.",
+        "Created full HVAC system specification guide for commercial contractors serving as lead generation asset.",
+        "Applied entity-first outlining methods to match expertise signals with high-intent search journeys."
+      ]
+    },
+    {
+      "company": "Lear Marketing",
+      "title": "Content Strategist",
+      "bullets": [
+        "Produced content for electric aircraft propulsion (SAE) and DOE-sponsored solid-state lighting initiatives.",
+        "Built modular SEO programs and content systems for founders lacking ICP or GTM frameworks.",
+        "Orchestrated cross-page internal links directing authority toward revenue-driving pages."
+      ]
+    }
+  ],
+  "cover_letter": {
+    "paragraphs": [
+      "mabl needs someone who actually knows testing software to build a content engine that earns credibility with practitioners. I ship content that ranks because I understand the technical fundamentals—building content frameworks for ISO-17025 labs taught me to translate complex specifications into discoverable value.",
+      "The second need is proving content drives pipeline. At Focus Digital I tied content directly to GA4 pipeline attribution, improving blended CAC while generating 14 qualified opportunities in 30 days. I do not just produce content—I instrument the funnel end-to-end so marketing-generated demand actually drives revenue.",
+      "I am a velocity-driven content shipper who obsesses over measurement and technical accuracy. I built a content consultancy that ranks technical audiences because I do the work to understand the product. Review my portfolio at linkedin.com/in/johnmichaelcarr and let us find time to walk through how I would architect mabl's editorial engine."
+    ]
+  }
+}

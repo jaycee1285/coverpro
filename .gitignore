@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+app/build/
+app/.svelte-kit/
+app/src-tauri/target/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Security - API keys (hardwired for personal use)
+app/src/lib/config/api-keys.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Rust
+app/src-tauri/target/
+
+# Release archives
+*.tar.xz
+*.tar.gz
+
+# Nix
+result
+result-*
+.direnv/
+
+# Claude-mem placeholder files (root CLAUDE.md is real, subdirs are auto-generated)
+app/**/CLAUDE.md
+
+# Claude Code agent artifacts
+.claude/
+**/CLAUDE.md
+!CLAUDE.md
+
+# Release artifacts
+*.xpi
+

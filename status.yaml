@@ -1,0 +1,47 @@
+repo: CoverPro
+status_version: 1
+last_updated: 2026-04-08
+overall_state: active
+use_case_maturity: maturing
+summary: >
+  Desktop single-user workflow now has the merged safety/admission path,
+  bounded structured generation, inline cost visibility, export-stage
+  cover-letter block editing, unified Typst fit checks at both results and
+  export gates, export success-path casing bug fix, OpenCode removal, and a
+  manual-model-first OpenRouter selection path with live picker sync.
+current_objective: >
+  Keep model-selection UX deterministic: maintain manual OpenRouter model
+  control, preserve settings-to-input picker synchronization, and continue the
+  shared layout-budget contract work.
+manual_smoke:
+  state: passed
+  source: Smoke-Human-04-08.md (user-confirmed in-session on 2026-04-08 after OpenRouter model UX and settings-entry fixes)
+  last_run: 2026-04-08
+  command: >
+    cd /home/john/repos/coverpro/app && nix develop -c bun run tauri dev
+  scope:
+    - OpenCode removed from backend picker and command bridge paths
+    - OpenRouter manual model IDs update input picker immediately after settings save
+    - single always-visible settings entry (floating gear) on desktop input view
+    - unified results/export Typst fit checks on fresh packages
+    - export success-path banner and output directory reporting after camelCase payload fix
+    - paused repair card visibility for doc-wide preflight plus bullet-width failures
+  passes:
+    - OpenRouter model-list edits now propagate to the input screen model picker without stale entries
+    - runner-bound selected model follows refreshed catalog state after settings save
+    - settings access no longer depends on hidden mobile-only controls in desktop input view
+  known_gaps:
+    - this session's refreshed model UX still needs one explicit end-to-end stale-model regression artifact capture
+    - runner, linter, and Typst still do not share one explicit budget manifest per field class
+    - durable telemetry and human writing scores are still not persisted across runs
+next_steps:
+  - smoke one explicit stale-model regression run (settings save -> picker refresh -> generate) and capture artifact notes
+  - smoke two fresh packages through results and export to verify unified Typst gating and the export success path
+  - create a shared field-budget manifest used by runner, linter, and Typst preflight
+  - persist durable run telemetry with model, cost, repair count, and human writing score
+known_gaps:
+  - no shared budget manifest yet connects layout truth back to repair budgeting
+  - compile/output-stage failures are still only proven at actual export, not by the fit checks
+  - durable run scoring/logging is still planned but not implemented
+human_blockers:
+  - human still needs low-friction fresh-package smoke loops because the generator is nondeterministic and UI-only debugging is not trustworthy enough

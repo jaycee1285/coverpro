@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=CoverPro
+Comment=JD Package Runner
+Exec=coverpro
+Icon=coverpro
+Terminal=false
+Type=Application
+Categories=Office;Utility;
+StartupNotify=true
