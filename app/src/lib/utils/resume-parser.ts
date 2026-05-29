@@ -12,7 +12,8 @@ export type EmployerTag =
   | 'gestallt'
   | 'coverpro'
   | 'daylight'
-  | 'contextmax'
+  | 'traverse'
+  | 'openswarm'
   | 'ebay'
   | 'earlier-experience';
 
@@ -55,11 +56,18 @@ const EMPLOYER_MAP: Record<string, EmployerTag> = {
   'coverpro': 'coverpro',
   'ai resume': 'coverpro',
   'resume pipeline': 'coverpro',
+  'openswarm': 'openswarm',
+  'open swarm': 'openswarm',
+  'multi-agent orchestration': 'openswarm',
+  'agent orchestration': 'openswarm',
   'daylight': 'daylight',
-  'contextmax': 'contextmax',
-  'context recovery': 'contextmax',
-  'multi-project orchestration': 'contextmax',
-  'ai-driven multi-project': 'contextmax',
+  'traverse': 'traverse',
+  'contextmax': 'traverse',
+  'context recovery': 'traverse',
+  'markdown locality': 'traverse',
+  'locality graph': 'traverse',
+  'multi-project orchestration': 'traverse',
+  'ai-driven multi-project': 'traverse',
   'multi-project': 'daylight',
   'project management': 'daylight',
   'ebay': 'ebay',
@@ -123,7 +131,7 @@ function extractParagraphs(lines: string[]): string[] {
   return paragraphs;
 }
 
-// Split "Technical Projects" section into subsections (Gestallt, CoverPro, ContextMax, DayLight)
+// Split "Technical Projects" section into subsections (Gestallt, CoverPro, Traverse, DayLight)
 function splitTechnicalProjects(section: ParsedSection): ParsedSection[] {
   const lines = section.raw.split('\n');
   const subsections: ParsedSection[] = [];
@@ -224,7 +232,7 @@ export function parsePackage(markdown: string): ParsedPackage {
   // Flush the last section
   flushSection();
 
-  // Post-process: split "Technical Projects" section into subsections for gestallt/coverpro/contextmax/daylight
+  // Post-process: split "Technical Projects" section into subsections for gestallt/coverpro/traverse/daylight
   const technicalProjectsIdx = sections.findIndex(s => s.heading.toLowerCase().includes('technical projects'));
   if (technicalProjectsIdx !== -1) {
     const techSection = sections[technicalProjectsIdx];

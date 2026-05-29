@@ -9,6 +9,9 @@
   import type { ExportFitDiagnostics } from '$lib/utils/pdf-export';
   import { checkMarkdownFitDiagnostics } from '$lib/utils/pdf-export';
   import { parsePackage, validatePackageMarkdown } from '$lib/utils/resume-parser';
+  import { buildRepairRoute, type RepairRouteResult } from '$lib/utils/repair-router';
+  import { lintMarkdown } from '$lib/utils/linter';
+  import { REPAIR_FIXTURES } from '$lib/config/repair-fixtures';
   import IconBadge from '~icons/lucide/badge';
   import IconRefreshCw from '~icons/lucide/refresh-cw';
   import IconCheck from '~icons/lucide/check';
@@ -52,6 +55,9 @@
     mutationLocked: boolean;
     rejectedCandidateDebug: RejectedCandidateDebug | null;
     totalCost: number | null;
+    repairRoute: RepairRouteResult | null;
+    repairFixtureLabel: string;
+    repairProof: string[];
   };
 
   type DraftDecision = 'continue' | 'accept';
@@ -78,8 +84,8 @@
   let anyCancelled = $derived(results.some(r => r.status === 'cancelled'));
   let anyRunning = $derived(results.some(r => r.status === 'running' || r.status === 'pending' || r.status === 'linting' || r.status === 'fixing'));
 
-  // Keyboard shortcuts: Ctrl+G generate, Ctrl+K kill current, Ctrl+J kill all,
-  // Ctrl+P export PDFs, Ctrl+, settings, Ctrl+H shortcuts help.
+  // Keyboard shortcuts: Ctrl+G generate, Ctrl+Shift+R repair import,
+  // Ctrl+K kill current, Ctrl+J kill all, Ctrl+P export PDFs, Ctrl+, settings, Ctrl+H shortcuts help.
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       if (showShortcuts) {
@@ -91,7 +97,12 @@
     }
 
     if (!e.ctrlKey) return;
-    if (e.key === 'g') {
+    if (e.shiftKey && e.key.toLowerCase() === 'r') {
+      e.preventDefault();
+      if (view === 'input' && inputRef) {
+        inputRef.openRepairImport();
+      }
+    } else if (e.key === 'g') {
       e.preventDefault();
       if (view === 'input' && inputRef) {
         inputRef.handleRun();
@@ -179,6 +190,29 @@
       : `/tmp/coverpro/${base}.md`;
   }
 
+  function splitPackageMarkdown(markdown: string): { resume: string; coverLetter: string } | null {
+    const coverLetterStart = markdown.indexOf('## WAR Cover Letter');
+    if (coverLetterStart < 0) return null;
+
+    const resume = markdown.slice(0, coverLetterStart).trim();
+    const coverLetter = markdown.slice(coverLetterStart).trim();
+    if (!resume || !coverLetter) return null;
+
+    return { resume, coverLetter };
+  }
+
+  async function writePackageArtifacts(path: string, markdown: string): Promise<void> {
+    const { invoke } = await import('@tauri-apps/api/core');
+    await invoke('write_file', { path, contents: markdown });
+
+    const split = splitPackageMarkdown(markdown);
+    if (!split) return;
+
+    const stem = path.replace(/\.md$/i, '');
+    await invoke('write_file', { path: `${stem}.resume.md`, contents: split.resume });
+    await invoke('write_file', { path: `${stem}.cover-letter.md`, contents: split.coverLetter });
+  }
+
   async function dumpToTmp(
     markdown: string,
     runNum: number,
@@ -189,9 +223,8 @@
     errorCount: number,
   ) {
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
       const path = buildRunArtifactPath('run', runNum, jobIndex, jobTitle, company, iteration, errorCount);
-      await invoke('write_file', { path, contents: markdown });
+      await writePackageArtifacts(path, markdown);
       console.log(`Dumped output to ${path}`);
     } catch (e) {
       console.warn('Failed to dump output to /tmp:', e);
@@ -207,9 +240,8 @@
     iteration: number,
     errorCount: number,
   ): Promise<string> {
-    const { invoke } = await import('@tauri-apps/api/core');
     const path = buildRunArtifactPath('rescue', runNum, jobIndex, jobTitle, company, iteration, errorCount);
-    await invoke('write_file', { path, contents: markdown });
+    await writePackageArtifacts(path, markdown);
     return path;
   }
 
@@ -343,8 +375,9 @@
 
     const parsed = validateImportedPackage(markdown);
     const { jobTitle, company } = deriveImportedMeta(parsed);
-    const lintResult = await analyzeDraftMarkdown(markdown, resumeMode);
+    const lintResult = lintMarkdown(markdown, resumeMode);
     const importIsAdmissible = lintResult.valid;
+    const repairRoute = buildRepairRoute(markdown, resumeMode);
 
     results = [{
       markdown,
@@ -368,7 +401,7 @@
       keep: false,
       currentDraftMarkdown: markdown,
       draftErrors: lintResult.errors,
-      draftFitDiagnostics: await checkMarkdownFitDiagnostics(markdown, jobTitle),
+      draftFitDiagnostics: null,
       draftAttempt: 0,
       draftMaxAttempts: 0,
       pauseRequested: !importIsAdmissible,
@@ -384,10 +417,68 @@
       mutationLocked: false,
       rejectedCandidateDebug: null,
       totalCost: null,
+      repairRoute,
+      repairFixtureLabel: '',
+      repairProof: [],
     }];
 
     exportJobIndex = importIsAdmissible ? 0 : null;
     view = importIsAdmissible ? 'export' : 'output';
+  }
+
+  async function handleLoadRepairFixture(fixtureId: string): Promise<void> {
+    const fixture = REPAIR_FIXTURES.find((candidate) => candidate.id === fixtureId);
+    if (!fixture) {
+      throw new Error(`Unknown repair fixture: ${fixtureId}`);
+    }
+
+    const markdown = fixture.markdown.trim();
+    const parsed = validateImportedPackage(markdown);
+    const { jobTitle, company } = deriveImportedMeta(parsed);
+    const lintResult = lintMarkdown(markdown, fixture.mode);
+    const repairRoute = buildRepairRoute(markdown, fixture.mode);
+
+    results = [{
+      markdown,
+      status: 'paused',
+      error: '',
+      statusDetail: `Loaded ${fixture.label} fixture. Repair checkpoint ready without an LLM call.`,
+      jobTitle,
+      company,
+      job: {
+        jdText: '',
+        jobTitle,
+        company,
+        slotIndex: 0,
+        resumeMode: fixture.mode,
+      },
+      startedAt: null,
+      elapsed: 0,
+      abortController: null,
+      keep: false,
+      currentDraftMarkdown: markdown,
+      draftErrors: lintResult.errors,
+      draftFitDiagnostics: null,
+      draftAttempt: 0,
+      draftMaxAttempts: 0,
+      pauseRequested: true,
+      resumeResolver: null,
+      acceptedDraft: false,
+      checkpointPhase: 'pre-repair',
+      lastMutation: 'Loaded deterministic repair fixture',
+      transientNote: `${fixture.label} is loaded from test fixtures; no live model was called.`,
+      rescuePath: '',
+      rescueStatus: '',
+      mutationLocked: false,
+      rejectedCandidateDebug: null,
+      totalCost: null,
+      repairRoute,
+      repairFixtureLabel: fixture.label,
+      repairProof: [],
+    }];
+
+    exportJobIndex = null;
+    view = 'output';
   }
 
   function getVisibleMarkdown(index: number): string {
@@ -433,6 +524,115 @@
     return 'runner';
   }
 
+  function applyLocalRepairToMarkdown(markdown: string, targetKey: string): string {
+    if (targetKey === 'summary:bullet:1') {
+      return markdown.replace(
+        /^-\s*(?:Selected angle:\s*[^.]+\.|selectedAngle\s*[:=]\s*[^.]+\.)\s*/mi,
+        '- ',
+      );
+    }
+
+    if (targetKey === 'war-cover-letter:block') {
+      return markdown.replace(/—/g, '-');
+    }
+
+    return markdown;
+  }
+
+  function getRepairTargetText(markdown: string, targetKey: string): string {
+    const parsed = parsePackage(markdown);
+
+    if (targetKey === 'title:block') {
+      return parsed.title;
+    }
+
+    if (targetKey === 'war-cover-letter:block') {
+      return parsed.sections.find((section) => section.kind === 'cover-letter')?.raw.trim() || '';
+    }
+
+    if (targetKey.includes(':bullet:')) {
+      const [sectionKey, , indexText] = targetKey.split(':');
+      const bulletIndex = Number(indexText) - 1;
+      const section = parsed.sections.find((candidate) => candidate.heading.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') === sectionKey);
+      return section?.bullets[bulletIndex]?.text || '';
+    }
+
+    if (targetKey.startsWith('section:')) {
+      const sectionKey = targetKey.replace(/^section:/, '');
+      const section = parsed.sections.find((candidate) => candidate.heading.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') === sectionKey);
+      return section?.raw.trim() || '';
+    }
+
+    return '';
+  }
+
+  function repairTargetLabel(targetKey: string): string {
+    if (targetKey === 'title:block') return 'Title';
+    if (targetKey === 'war-cover-letter:block') return 'WAR Cover Letter';
+    if (targetKey === 'summary:bullet:1') return 'Summary bullet 1';
+    return targetKey
+      .replace(/^section:/, '')
+      .replace(':block', '')
+      .replace(/:bullet:/, ' bullet ')
+      .split('-')
+      .filter(Boolean)
+      .map((part) => part[0]?.toUpperCase() + part.slice(1))
+      .join(' ');
+  }
+
+  function buildLocalRepairProof(before: string, after: string, targetKey: string, preservedTargets: string[]): string[] {
+    const beforeTarget = getRepairTargetText(before, targetKey);
+    const afterTarget = getRepairTargetText(after, targetKey);
+    const proof = [
+      beforeTarget !== afterTarget
+        ? `${repairTargetLabel(targetKey)} changed.`
+        : `${repairTargetLabel(targetKey)} did not change.`,
+    ];
+
+    for (const preserved of preservedTargets) {
+      if (getRepairTargetText(before, preserved) === getRepairTargetText(after, preserved)) {
+        proof.push(`${repairTargetLabel(preserved)} unchanged.`);
+      } else {
+        proof.push(`${repairTargetLabel(preserved)} changed.`);
+      }
+    }
+
+    return proof;
+  }
+
+  async function applyLocalRepair(index: number, targetKey: string): Promise<void> {
+    const current = getVisibleMarkdown(index);
+    if (!current) return;
+
+    const activeUnit = results[index].repairRoute?.units.find((unit) => unit.targetKey === targetKey);
+    const nextMarkdown = applyLocalRepairToMarkdown(current, targetKey);
+    if (nextMarkdown === current) {
+      results[index] = {
+        ...results[index],
+        transientNote: `No local change available for ${targetKey}.`,
+        lastMutation: 'Local repair skipped',
+      };
+      return;
+    }
+
+    const resumeMode = results[index].job.resumeMode || appStore.resumeMode;
+    const lintResult = lintMarkdown(nextMarkdown, resumeMode);
+    const proofTargets = activeUnit?.preservedTargets.filter((target) => target === 'section:focus-digital' || target === 'war-cover-letter:block') || [];
+    results[index] = {
+      ...results[index],
+      markdown: nextMarkdown,
+      currentDraftMarkdown: nextMarkdown,
+      status: lintResult.valid ? 'done' : 'paused',
+      draftErrors: lintResult.errors,
+      draftFitDiagnostics: null,
+      repairRoute: buildRepairRoute(nextMarkdown, resumeMode),
+      repairProof: buildLocalRepairProof(current, nextMarkdown, targetKey, proofTargets),
+      lastMutation: `Applied local repair to ${targetKey}`,
+      transientNote: 'Local repair changed only the scoped unit. Preserved units were not resent to an LLM.',
+      statusDetail: lintResult.valid ? 'Local repair applied; package is lint-clean.' : 'Local repair applied; remaining scoped issues still need review.',
+    };
+  }
+
   function createRepairHandler(jobIndex: number): RepairIterationCallback {
     return async (draft) => {
       if (isMutationLocked(jobIndex)) {
@@ -452,7 +652,9 @@
         pauseRequested: true,
         checkpointPhase: draft.phase,
         rejectedCandidateDebug: draft.rejectedCandidate || null,
-        totalCost: draft.totalCost ?? results[jobIndex].totalCost,
+      totalCost: draft.totalCost ?? results[jobIndex].totalCost,
+      repairRoute: buildRepairRoute(draft.currentDraftMarkdown, results[jobIndex].job.resumeMode || appStore.resumeMode),
+      repairProof: [],
         lastMutation: draft.phase === 'pre-repair' ? 'Lint checkpoint captured' : `Repair ${draft.attempt} completed`,
         transientNote: draft.phase === 'pre-repair'
           ? 'Runner is blocked. No repair call will start until you explicitly continue or accept this draft.'
@@ -521,6 +723,8 @@
         draftErrors: result.lintErrors || results[index].draftErrors,
         rejectedCandidateDebug: results[index].rejectedCandidateDebug,
         totalCost: result.totalCost ?? results[index].totalCost,
+        repairRoute: finalMarkdown ? buildRepairRoute(finalMarkdown, job.resumeMode || appStore.resumeMode) : results[index].repairRoute,
+        repairProof: [],
         lastMutation: result.status === 'done' ? 'Final package committed' : 'Run ended in error',
         transientNote: result.status === 'done'
           ? 'Rendered output is final and stable.'
@@ -587,6 +791,9 @@
       currentDraftMarkdown: '',
       rejectedCandidateDebug: null,
       totalCost: null,
+      repairRoute: null,
+      repairFixtureLabel: '',
+      repairProof: [],
     }));
 
     await Promise.allSettled(jobs.map((job, index) => runJobAtIndex(job, index, currentRun)));
@@ -653,6 +860,9 @@
       mutationLocked: false,
       rejectedCandidateDebug: null,
       totalCost: null,
+      repairRoute: null,
+      repairFixtureLabel: '',
+      repairProof: [],
     };
 
     try {
@@ -690,6 +900,8 @@
         draftErrors: result.lintErrors || results[index].draftErrors,
         rejectedCandidateDebug: results[index].rejectedCandidateDebug,
         totalCost: result.totalCost ?? results[index].totalCost,
+        repairRoute: finalMarkdown ? buildRepairRoute(finalMarkdown, job.resumeMode || appStore.resumeMode) : results[index].repairRoute,
+        repairProof: [],
         lastMutation: result.status === 'done' ? 'Final package committed' : 'Rerun ended in error',
         transientNote: result.status === 'done'
           ? 'Rendered output is final and stable.'
@@ -777,6 +989,7 @@
         <p class="shortcuts-note">Core:</p>
         <ul class="shortcuts-list">
           <li><kbd>Ctrl+G</kbd> Generate (input view)</li>
+          <li><kbd>Ctrl+Shift+R</kbd> Open repair import / fixture loader (input view)</li>
           <li><kbd>Ctrl+K</kbd> Cancel current running job</li>
           <li><kbd>Ctrl+J</kbd> Cancel all running jobs</li>
           <li><kbd>Ctrl+P</kbd> Export PDFs (export view)</li>
@@ -806,6 +1019,7 @@
       bind:this={inputRef}
       onRun={handleRun}
       onImportRepair={handleImportRepair}
+      onLoadRepairFixture={handleLoadRepairFixture}
       onOpenSettings={() => { showSettings = true; }}
     />
   {:else if view === 'export' && exportJobIndex !== null && results[exportJobIndex]}
@@ -907,6 +1121,9 @@
                 draftMaxAttempts={result.draftMaxAttempts}
                 rejectedCandidateDebug={result.rejectedCandidateDebug}
                 totalCost={result.totalCost}
+                repairRoute={result.repairRoute}
+                repairFixtureLabel={result.repairFixtureLabel}
+                repairProof={result.repairProof}
                 isPaused={result.status === 'paused' || (result.pauseRequested && result.resumeResolver !== null)}
                 isRepairing={(result.status === 'running' || result.status === 'linting' || result.status === 'fixing') && result.currentDraftMarkdown !== ''}
                 checkpointPhase={result.checkpointPhase}
@@ -921,6 +1138,7 @@
                 onPause={() => pauseJob(i)}
                 onResume={() => resumeJob(i)}
                 onAcceptDraft={() => acceptJobDraft(i)}
+                onApplyLocalRepair={(targetKey) => applyLocalRepair(i, targetKey)}
                 onRerun={result.job.jdText ? () => handleRerunJob(i) : undefined}
                 onRescue={() => rescueJob(i)}
                 onExport={(result.status === 'done' || !!result.currentDraftMarkdown) ? () => openExport(i) : undefined}

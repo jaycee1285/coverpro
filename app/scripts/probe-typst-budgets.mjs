@@ -22,7 +22,7 @@ const SECTION_SPECS = [
   { id: 'learMarketing', label: 'Lear Marketing', kind: 'bullets', count: 3 },
   { id: 'gestallt', label: 'Gestallt', kind: 'bullets', count: 2 },
   { id: 'coverpro', label: 'CoverPro', kind: 'bullets', count: 2 },
-  { id: 'contextmax', label: 'ContextMax', kind: 'bullets', count: 1 },
+  { id: 'traverse', label: 'Traverse', kind: 'bullets', count: 1 },
   { id: 'daylight', label: 'DayLight', kind: 'bullets', count: 1 },
   { id: 'ebay', label: 'eBay', kind: 'bullets', count: 3 },
 ];
@@ -38,7 +38,7 @@ const PACKED_MODE_SPECS = [
       gestallt: 3,
       coverpro: 2,
       daylight: 1,
-      contextmax: 1,
+      traverse: 1,
     },
   },
   {
@@ -83,7 +83,7 @@ const PACKED_MODE_SPECS = [
       learMarketing: 1,
       gestallt: 2,
       coverpro: 1,
-      contextmax: 1,
+      traverse: 1,
     },
   },
 ];
@@ -230,7 +230,7 @@ function buildBaseData() {
       gestallt: [],
       coverpro: [],
       daylight: [],
-      contextmax: [],
+      traverse: [],
       ebay: [],
       earlierExperience: 'Earlier: Product Copywriter, Toyota (via agency) | Lead Content Strategist, eBay | Content Writer, Brafton',
     },

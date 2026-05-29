@@ -1,14 +1,19 @@
-use std::process::Stdio;
-use std::collections::HashMap;
-use std::sync::OnceLock;
-use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::Stdio;
+use std::sync::OnceLock;
+use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::AppHandle;
+#[cfg(target_os = "android")]
+use tauri::Manager;
 use tokio::process::Command;
 use tokio::sync::Mutex;
 
 mod theme;
+mod typst_engine;
 
 // Track running processes for cancellation
 fn processes() -> &'static Mutex<HashMap<u32, u32>> {
@@ -45,7 +50,9 @@ fn should_fallback(error: &str) -> bool {
         "afford",
     ];
     let lower = error.to_lowercase();
-    fallback_indicators.iter().any(|indicator| lower.contains(indicator))
+    fallback_indicators
+        .iter()
+        .any(|indicator| lower.contains(indicator))
 }
 
 // Try to extract a retry-after timestamp or duration from an error message
@@ -115,7 +122,11 @@ fn model_for_tier(backend: LlmBackend, tier: ModelTier) -> &'static str {
     }
 }
 
-fn translate_model_for_backend(source: LlmBackend, target: LlmBackend, model: Option<&str>) -> Option<String> {
+fn translate_model_for_backend(
+    source: LlmBackend,
+    target: LlmBackend,
+    model: Option<&str>,
+) -> Option<String> {
     match model {
         None => None,
         Some(m) if source == target => Some(m.to_string()),
@@ -126,7 +137,11 @@ fn translate_model_for_backend(source: LlmBackend, target: LlmBackend, model: Op
     }
 }
 
-async fn run_cli(backend: LlmBackend, prompt: &str, model: Option<&str>) -> Result<(String, u32), String> {
+async fn run_cli(
+    backend: LlmBackend,
+    prompt: &str,
+    model: Option<&str>,
+) -> Result<(String, u32), String> {
     // For codex, use -o <tempfile> to capture clean output separately from noisy stdout
     let codex_out_path = if backend == LlmBackend::Codex {
         let nonce = SystemTime::now()
@@ -146,7 +161,12 @@ async fn run_cli(backend: LlmBackend, prompt: &str, model: Option<&str>) -> Resu
         ),
         LlmBackend::Codex => (
             "codex",
-            vec!["exec".into(), "--dangerously-bypass-approvals-and-sandbox".into(), "--color".into(), "never".into()],
+            vec![
+                "exec".into(),
+                "--dangerously-bypass-approvals-and-sandbox".into(),
+                "--color".into(),
+                "never".into(),
+            ],
         ),
     };
 
@@ -188,7 +208,12 @@ async fn run_cli(backend: LlmBackend, prompt: &str, model: Option<&str>) -> Resu
         .stderr(Stdio::piped())
         .env("PATH", std::env::var("PATH").unwrap_or_default())
         .spawn()
-        .map_err(|e| format!("Failed to spawn {}: {} (is it installed and in PATH?)", cmd, e))?;
+        .map_err(|e| {
+            format!(
+                "Failed to spawn {}: {} (is it installed and in PATH?)",
+                cmd, e
+            )
+        })?;
 
     let pid = child.id().unwrap_or(0);
 
@@ -214,7 +239,11 @@ async fn run_cli(backend: LlmBackend, prompt: &str, model: Option<&str>) -> Resu
     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
     if !output.status.success() {
-        let exit_code = output.status.code().map(|c| c.to_string()).unwrap_or("unknown".to_string());
+        let exit_code = output
+            .status
+            .code()
+            .map(|c| c.to_string())
+            .unwrap_or("unknown".to_string());
         let error_detail = if !stderr.is_empty() {
             stderr
         } else if !stdout.is_empty() {
@@ -285,7 +314,11 @@ async fn run_claude_code(prompt: String) -> Result<LlmResult, String> {
 
 // Allow explicitly choosing a backend with optional model selection
 #[tauri::command]
-async fn run_with_backend(prompt: String, backend: String, model: Option<String>) -> Result<LlmResult, String> {
+async fn run_with_backend(
+    prompt: String,
+    backend: String,
+    model: Option<String>,
+) -> Result<LlmResult, String> {
     let backend_enum = match backend.to_lowercase().as_str() {
         "codex" => LlmBackend::Codex,
         _ => LlmBackend::Claude,
@@ -304,7 +337,11 @@ async fn run_with_backend(prompt: String, backend: String, model: Option<String>
                     // Claude: fall back to Codex
                     LlmBackend::Claude => {
                         eprintln!("Claude hit limit ({}), falling back to Codex", info);
-                        let fallback_model = translate_model_for_backend(LlmBackend::Claude, LlmBackend::Codex, model.as_deref());
+                        let fallback_model = translate_model_for_backend(
+                            LlmBackend::Claude,
+                            LlmBackend::Codex,
+                            model.as_deref(),
+                        );
                         match run_cli(LlmBackend::Codex, &prompt, fallback_model.as_deref()).await {
                             Ok((output, pid)) => Ok(LlmResult {
                                 output,
@@ -320,8 +357,13 @@ async fn run_with_backend(prompt: String, backend: String, model: Option<String>
                     // Codex: fall back to Claude
                     LlmBackend::Codex => {
                         eprintln!("Codex hit limit ({}), falling back to Claude", info);
-                        let fallback_model = translate_model_for_backend(LlmBackend::Codex, LlmBackend::Claude, model.as_deref());
-                        match run_cli(LlmBackend::Claude, &prompt, fallback_model.as_deref()).await {
+                        let fallback_model = translate_model_for_backend(
+                            LlmBackend::Codex,
+                            LlmBackend::Claude,
+                            model.as_deref(),
+                        );
+                        match run_cli(LlmBackend::Claude, &prompt, fallback_model.as_deref()).await
+                        {
                             Ok((output, pid)) => Ok(LlmResult {
                                 output,
                                 pid,
@@ -405,32 +447,62 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-#[tauri::command]
-async fn read_file(path: String) -> Result<String, String> {
-    tokio::fs::read_to_string(&path)
-        .await
-        .map_err(|e| format!("Failed to read file {}: {}", path, e))
+#[cfg(target_os = "android")]
+fn coverpro_temp_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .app_cache_dir()
+        .map(|path| path.join("coverpro"))
+        .map_err(|e| format!("Failed to resolve Android app cache dir: {}", e))
+}
+
+fn remap_temp_path_for_android(_app: &AppHandle, path: &str) -> Result<PathBuf, String> {
+    #[cfg(target_os = "android")]
+    {
+        if path == "/tmp/coverpro-debug.log" {
+            return Ok(coverpro_temp_dir(_app)?.join("coverpro-debug.log"));
+        }
+
+        if let Some(rest) = path.strip_prefix("/tmp/coverpro/") {
+            return Ok(coverpro_temp_dir(_app)?.join(rest));
+        }
+
+        Ok(PathBuf::from(path))
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        Ok(PathBuf::from(path))
+    }
 }
 
 #[tauri::command]
-async fn write_file(path: String, contents: String) -> Result<(), String> {
+async fn read_file(app: AppHandle, path: String) -> Result<String, String> {
+    let actual_path = remap_temp_path_for_android(&app, &path)?;
+    tokio::fs::read_to_string(&actual_path)
+        .await
+        .map_err(|e| format!("Failed to read file {}: {}", actual_path.display(), e))
+}
+
+#[tauri::command]
+async fn write_file(app: AppHandle, path: String, contents: String) -> Result<(), String> {
+    let actual_path = remap_temp_path_for_android(&app, &path)?;
     // Create parent directories if needed
-    if let Some(parent) = std::path::Path::new(&path).parent() {
+    if let Some(parent) = actual_path.parent() {
         tokio::fs::create_dir_all(parent)
             .await
             .map_err(|e| format!("Failed to create directory {}: {}", parent.display(), e))?;
     }
-    tokio::fs::write(&path, &contents)
+    tokio::fs::write(&actual_path, &contents)
         .await
-        .map_err(|e| format!("Failed to write file {}: {}", path, e))
+        .map_err(|e| format!("Failed to write file {}: {}", actual_path.display(), e))
 }
 
 #[tauri::command]
-async fn append_to_file(path: String, content: String) -> Result<(), String> {
+async fn append_to_file(app: AppHandle, path: String, content: String) -> Result<(), String> {
     use tokio::io::AsyncWriteExt;
 
+    let actual_path = remap_temp_path_for_android(&app, &path)?;
     // Create parent directories if needed
-    if let Some(parent) = std::path::Path::new(&path).parent() {
+    if let Some(parent) = actual_path.parent() {
         tokio::fs::create_dir_all(parent)
             .await
             .map_err(|e| format!("Failed to create directory {}: {}", parent.display(), e))?;
@@ -439,13 +511,13 @@ async fn append_to_file(path: String, content: String) -> Result<(), String> {
     let mut file = tokio::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open(&path)
+        .open(&actual_path)
         .await
-        .map_err(|e| format!("Failed to open file {}: {}", path, e))?;
+        .map_err(|e| format!("Failed to open file {}: {}", actual_path.display(), e))?;
 
     file.write_all(content.as_bytes())
         .await
-        .map_err(|e| format!("Failed to append to file {}: {}", path, e))
+        .map_err(|e| format!("Failed to append to file {}: {}", actual_path.display(), e))
 }
 
 /// Check if the app can write to external storage.
@@ -487,7 +559,7 @@ fn get_default_output_dir() -> Result<String, String> {
 const RESUME_TEMPLATE: &str = include_str!("../templates/resume.typ");
 const COVER_LETTER_TEMPLATE: &str = include_str!("../templates/cover-letter.typ");
 const BULLET_MEASURE_TEMPLATE: &str = r#"
-#let data = json(sys.inputs.at("data"))
+#let data = sys.inputs.at("data")
 #let content-width = 7.1in
 
 #set page(
@@ -502,7 +574,7 @@ const BULLET_MEASURE_TEMPLATE: &str = r#"
 
 #set par(leading: 0.5em)
 
-#let bullet-body(text) = [#h(10pt)●#h(5pt)#text \ ]
+#let bullet-body(text) = [#h(10pt)•#h(5pt)#text \ ]
 
 #context [
   #let single-line = measure(block(width: content-width)[#bullet-body("Probe width baseline.")])
@@ -684,7 +756,10 @@ fn parse_preflight_query_output(stdout: &str) -> Result<ResumePreflight, String>
         .find(|item| item.func == "metadata")
         .and_then(|item| item.value)
         .ok_or_else(|| "Typst preflight metadata was missing".to_string())
-        .and_then(|value| serde_json::from_value(value).map_err(|e| format!("Failed to decode Typst preflight metadata: {}", e)))?;
+        .and_then(|value| {
+            serde_json::from_value(value)
+                .map_err(|e| format!("Failed to decode Typst preflight metadata: {}", e))
+        })?;
 
     let sections = value
         .sections
@@ -701,10 +776,22 @@ fn parse_preflight_query_output(stdout: &str) -> Result<ResumePreflight, String>
     Ok(ResumePreflight {
         page_count: value.page_count.unwrap_or(0),
         target_page_count: value.target_page_count.unwrap_or(1),
-        content_width_pt: value.content_width.as_deref().and_then(parse_typst_length_pt),
-        available_height_pt: value.available_height.as_deref().and_then(parse_typst_length_pt),
-        total_content_height_pt: value.total_size.as_ref().and_then(|size| parse_typst_length_pt(&size.height)),
-        total_content_width_pt: value.total_size.as_ref().and_then(|size| parse_typst_length_pt(&size.width)),
+        content_width_pt: value
+            .content_width
+            .as_deref()
+            .and_then(parse_typst_length_pt),
+        available_height_pt: value
+            .available_height
+            .as_deref()
+            .and_then(parse_typst_length_pt),
+        total_content_height_pt: value
+            .total_size
+            .as_ref()
+            .and_then(|size| parse_typst_length_pt(&size.height)),
+        total_content_width_pt: value
+            .total_size
+            .as_ref()
+            .and_then(|size| parse_typst_length_pt(&size.width)),
         sections,
         failures: Vec::new(),
     })
@@ -726,9 +813,10 @@ fn finalize_preflight(mut preflight: ResumePreflight) -> ResumePreflight {
         ));
     }
 
-    if let (Some(total_height), Some(available_height)) =
-        (preflight.total_content_height_pt, preflight.available_height_pt)
-    {
+    if let (Some(total_height), Some(available_height)) = (
+        preflight.total_content_height_pt,
+        preflight.available_height_pt,
+    ) {
         if total_height > available_height {
             preflight.failures.push(preflight_failure(
                 "resume_content_exceeds_available_height",
@@ -749,59 +837,27 @@ fn finalize_preflight(mut preflight: ResumePreflight) -> ResumePreflight {
     preflight
 }
 
-fn default_font_paths() -> String {
-    std::env::var("TYPST_FONT_PATHS").unwrap_or_else(|_| {
-        let home = std::env::var("HOME").unwrap_or_default();
-        format!(
-            "/etc/profiles/per-user/{user}/share/fonts:{home}/.local/share/fonts:/run/current-system/sw/share/fonts",
-            user = std::env::var("USER").unwrap_or_default(),
-            home = home,
-        )
-    })
-}
-
-fn typst_common_args(data_path: &str, font_paths: &str) -> Vec<String> {
-    let mut args = vec![
-        "--root".to_string(),
-        "/".to_string(),
-        "--input".to_string(),
-        format!("data={}", data_path),
-    ];
-
-    for path in font_paths.split(':').filter(|path| !path.is_empty()) {
-        args.push("--font-path".to_string());
-        args.push(path.to_string());
-    }
-
-    args
-}
-
-fn run_typst_query(template_path: &str, data_path: &str, font_paths: &str) -> Result<ResumePreflight, String> {
-    let mut args = vec![
-        "query".to_string(),
-        template_path.to_string(),
-        "<coverpro-preflight>".to_string(),
-        "--format".to_string(),
-        "json".to_string(),
-    ];
-    args.extend(typst_common_args(data_path, font_paths));
-
-    let output = std::process::Command::new("typst")
-        .args(&args)
-        .output()
-        .map_err(|e| format!("Failed to run typst query for preflight: {}", e))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("Typst preflight query failed: {}", stderr));
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let preflight = parse_preflight_query_output(&stdout)?;
+fn run_typst_query(
+    template_source: &str,
+    data_value: serde_json::Value,
+) -> Result<ResumePreflight, String> {
+    let world = typst_engine::TypstWorld::new(template_source.to_string(), data_value);
+    let doc = typst_engine::compile_document(&world)?;
+    let values = typst_engine::query_metadata_values(&doc, "coverpro-preflight")?;
+    let wrapped = serde_json::Value::Array(
+        values
+            .into_iter()
+            .map(|v| serde_json::json!({ "func": "metadata", "value": v }))
+            .collect(),
+    );
+    let preflight = parse_preflight_query_output(&wrapped.to_string())?;
     Ok(finalize_preflight(preflight))
 }
 
-fn parse_bullet_measure_query_output(stdout: &str, inputs: &[BulletMeasureInput]) -> Result<Vec<BulletMeasureResult>, String> {
+fn parse_bullet_measure_query_output(
+    stdout: &str,
+    inputs: &[BulletMeasureInput],
+) -> Result<Vec<BulletMeasureResult>, String> {
     let items: Vec<TypstQueryItem> = serde_json::from_str(stdout)
         .map_err(|e| format!("Failed to parse Typst bullet measurement JSON: {}", e))?;
 
@@ -810,10 +866,19 @@ fn parse_bullet_measure_query_output(stdout: &str, inputs: &[BulletMeasureInput]
         .find(|item| item.func == "metadata")
         .and_then(|item| item.value)
         .ok_or_else(|| "Typst bullet measurement metadata was missing".to_string())
-        .and_then(|value| serde_json::from_value(value).map_err(|e| format!("Failed to decode bullet measurement metadata: {}", e)))?;
+        .and_then(|value| {
+            serde_json::from_value(value)
+                .map_err(|e| format!("Failed to decode bullet measurement metadata: {}", e))
+        })?;
 
-    let content_width_pt = value.content_width.as_deref().and_then(parse_typst_length_pt);
-    let single_line_height_pt = value.single_line_height.as_deref().and_then(parse_typst_length_pt);
+    let content_width_pt = value
+        .content_width
+        .as_deref()
+        .and_then(parse_typst_length_pt);
+    let single_line_height_pt = value
+        .single_line_height
+        .as_deref()
+        .and_then(parse_typst_length_pt);
     let measured = value.bullets.unwrap_or_default();
 
     let mut measured_by_key: HashMap<String, TypstBulletMeasureItem> = HashMap::new();
@@ -831,14 +896,23 @@ fn parse_bullet_measure_query_output(stdout: &str, inputs: &[BulletMeasureInput]
             .and_then(|item| item.wrapped_height.as_deref())
             .and_then(parse_typst_length_pt);
         let overflow_width_pt = match (natural_width_pt, content_width_pt) {
-            (Some(natural_width), Some(content_width)) if natural_width > content_width => Some(natural_width - content_width),
+            (Some(natural_width), Some(content_width)) if natural_width > content_width => {
+                Some(natural_width - content_width)
+            }
             _ => Some(0.0),
         };
         let single_line = matches!((natural_width_pt, content_width_pt), (Some(natural_width), Some(content_width)) if natural_width <= content_width + 0.5);
         let estimated_trim_chars = match (natural_width_pt, content_width_pt) {
-            (Some(natural_width), Some(content_width)) if natural_width > content_width && !input.text.is_empty() => {
-                let overflow_ratio = ((natural_width - content_width) / natural_width).clamp(0.0, 1.0);
-                Some(((input.text.chars().count() as f64 * overflow_ratio).ceil().max(1.0)) as u32)
+            (Some(natural_width), Some(content_width))
+                if natural_width > content_width && !input.text.is_empty() =>
+            {
+                let overflow_ratio =
+                    ((natural_width - content_width) / natural_width).clamp(0.0, 1.0);
+                Some(
+                    ((input.text.chars().count() as f64 * overflow_ratio)
+                        .ceil()
+                        .max(1.0)) as u32,
+                )
             }
             _ => None,
         };
@@ -866,121 +940,70 @@ fn parse_bullet_measure_query_output(stdout: &str, inputs: &[BulletMeasureInput]
     Ok(results)
 }
 
-fn run_bullet_measure_query(template_path: &str, data_path: &str, font_paths: &str, inputs: &[BulletMeasureInput]) -> Result<Vec<BulletMeasureResult>, String> {
-    let mut args = vec![
-        "query".to_string(),
-        template_path.to_string(),
-        "<coverpro-bullet-measurement>".to_string(),
-        "--format".to_string(),
-        "json".to_string(),
-    ];
-    args.extend(typst_common_args(data_path, font_paths));
-
-    let output = std::process::Command::new("typst")
-        .args(&args)
-        .output()
-        .map_err(|e| format!("Failed to run typst query for bullet measurement: {}", e))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("Typst bullet measurement query failed: {}", stderr));
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    parse_bullet_measure_query_output(&stdout, inputs)
+fn run_bullet_measure_query(
+    template_source: &str,
+    data_value: serde_json::Value,
+    inputs: &[BulletMeasureInput],
+) -> Result<Vec<BulletMeasureResult>, String> {
+    let world = typst_engine::TypstWorld::new(template_source.to_string(), data_value);
+    let doc = typst_engine::compile_document(&world)?;
+    let values = typst_engine::query_metadata_values(&doc, "coverpro-bullet-measurement")?;
+    let wrapped = serde_json::Value::Array(
+        values
+            .into_iter()
+            .map(|v| serde_json::json!({ "func": "metadata", "value": v }))
+            .collect(),
+    );
+    parse_bullet_measure_query_output(&wrapped.to_string(), inputs)
 }
 
 #[tauri::command]
-async fn measure_typst_bullets(bullets: Vec<BulletMeasureInput>) -> Result<Vec<BulletMeasureResult>, String> {
-    let temp_dir = "/tmp/coverpro";
-    std::fs::create_dir_all(temp_dir)
-        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
-
-    let data_path = format!("{}/bullet-measure-data.json", temp_dir);
-    let template_path = format!("{}/bullet-measure.typ", temp_dir);
-    let payload = serde_json::json!({ "bullets": bullets });
-
-    std::fs::write(&data_path, serde_json::to_string(&payload).map_err(|e| format!("Failed to serialize bullet payload: {}", e))?)
-        .map_err(|e| format!("Failed to write bullet measurement data JSON: {}", e))?;
-    std::fs::write(&template_path, BULLET_MEASURE_TEMPLATE)
-        .map_err(|e| format!("Failed to write bullet measurement template: {}", e))?;
-
-    let font_paths = default_font_paths();
-    let result = run_bullet_measure_query(&template_path, &data_path, &font_paths, bullets.as_slice());
-
-    let _ = std::fs::remove_file(&data_path);
-    let _ = std::fs::remove_file(&template_path);
-
-    result
+async fn measure_typst_bullets(
+    _app: AppHandle,
+    bullets: Vec<BulletMeasureInput>,
+) -> Result<Vec<BulletMeasureResult>, String> {
+    let data_value = serde_json::json!({ "bullets": bullets });
+    run_bullet_measure_query(BULLET_MEASURE_TEMPLATE, data_value, bullets.as_slice())
 }
 
-fn compile_typst(template_path: &str, output_path: &str, data_path: &str, font_paths: &str) -> Result<(), String> {
-    let mut args = vec![
-        "compile".to_string(),
-        template_path.to_string(),
-        output_path.to_string(),
-    ];
-    args.extend(typst_common_args(data_path, font_paths));
-
-    let output = std::process::Command::new("typst")
-        .args(&args)
-        .output()
-        .map_err(|e| format!("Failed to run typst compile: {}", e))?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(stderr.trim().to_string());
+fn compile_typst(
+    template_source: &str,
+    output_path: &str,
+    data_value: serde_json::Value,
+) -> Result<(), String> {
+    let world = typst_engine::TypstWorld::new(template_source.to_string(), data_value);
+    let doc = typst_engine::compile_document(&world)?;
+    let pdf_bytes = typst_engine::document_to_pdf(&doc)?;
+    if let Some(parent) = Path::new(output_path).parent() {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create output dir {}: {}", parent.display(), e))?;
     }
-
-    Ok(())
+    std::fs::write(output_path, pdf_bytes)
+        .map_err(|e| format!("Failed to write PDF to {}: {}", output_path, e))
 }
 
 #[tauri::command]
 async fn export_pdf(
+    _app: AppHandle,
     json_data: String,
     resume_filename: String,
     cover_letter_filename: String,
     output_dir: Option<String>,
 ) -> Result<ExportResult, String> {
-    // Output directory: use provided dir, or platform default
     let output_dir = match output_dir {
         Some(dir) if !dir.is_empty() => dir,
-        _ => {
-            #[cfg(target_os = "android")]
-            { "/storage/emulated/0/Download".to_string() }
-            #[cfg(not(target_os = "android"))]
-            {
-                let home = std::env::var("HOME").map_err(|_| "HOME not set".to_string())?;
-                format!("{}/Downloads/resumescovers", home)
-            }
-        }
+        _ => get_default_output_dir()?,
     };
     std::fs::create_dir_all(&output_dir)
         .map_err(|e| format!("Failed to create output dir: {}", e))?;
 
-    // Write JSON data and templates to temp files
-    let temp_dir = "/tmp/coverpro";
-    std::fs::create_dir_all(temp_dir)
-        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
-
-    let data_path = format!("{}/export-data.json", temp_dir);
-    let resume_template_path = format!("{}/resume.typ", temp_dir);
-    let cover_letter_template_path = format!("{}/cover-letter.typ", temp_dir);
-
-    std::fs::write(&data_path, &json_data)
-        .map_err(|e| format!("Failed to write data JSON: {}", e))?;
-    std::fs::write(&resume_template_path, RESUME_TEMPLATE)
-        .map_err(|e| format!("Failed to write resume template: {}", e))?;
-    std::fs::write(&cover_letter_template_path, COVER_LETTER_TEMPLATE)
-        .map_err(|e| format!("Failed to write cover letter template: {}", e))?;
-
-    // Build font paths from env or defaults
-    let font_paths = default_font_paths();
+    let data_value: serde_json::Value = serde_json::from_str(&json_data)
+        .map_err(|e| format!("Failed to parse export JSON: {}", e))?;
 
     let resume_path = format!("{}/{}", output_dir, resume_filename);
     let cover_letter_path = format!("{}/{}", output_dir, cover_letter_filename);
 
-    let mut preflight = match run_typst_query(&resume_template_path, &data_path, &font_paths) {
+    let mut preflight = match run_typst_query(RESUME_TEMPLATE, data_value.clone()) {
         Ok(preflight) => preflight,
         Err(stderr) => preflight_with_failure(
             "resume_preflight_failed",
@@ -990,7 +1013,7 @@ async fn export_pdf(
     };
 
     if preflight.failures.is_empty() {
-        if let Err(stderr) = compile_typst(&resume_template_path, &resume_path, &data_path, &font_paths) {
+        if let Err(stderr) = compile_typst(RESUME_TEMPLATE, &resume_path, data_value.clone()) {
             preflight.failures.push(preflight_failure(
                 "resume_compile_failed",
                 "Typst failed while compiling the resume PDF.".to_string(),
@@ -1002,7 +1025,9 @@ async fn export_pdf(
 
     let mut cover_letter_exists = false;
     if preflight.failures.is_empty() {
-        if let Err(stderr) = compile_typst(&cover_letter_template_path, &cover_letter_path, &data_path, &font_paths) {
+        if let Err(stderr) =
+            compile_typst(COVER_LETTER_TEMPLATE, &cover_letter_path, data_value)
+        {
             preflight.failures.push(preflight_failure(
                 "cover_letter_compile_failed",
                 "Typst failed while compiling the cover letter PDF.".to_string(),
@@ -1020,36 +1045,26 @@ async fn export_pdf(
     } else {
         None
     };
-    let cover_letter_path = if success && cover_letter_exists && Path::new(&cover_letter_path).exists() {
-        Some(cover_letter_path)
-    } else {
-        None
-    };
+    let cover_letter_path =
+        if success && cover_letter_exists && Path::new(&cover_letter_path).exists() {
+            Some(cover_letter_path)
+        } else {
+            None
+        };
 
-    // Clean up temp files
-    let _ = std::fs::remove_file(&data_path);
-    let _ = std::fs::remove_file(&resume_template_path);
-    let _ = std::fs::remove_file(&cover_letter_template_path);
-
-    Ok(ExportResult { success, resume_path, cover_letter_path, preflight })
+    Ok(ExportResult {
+        success,
+        resume_path,
+        cover_letter_path,
+        preflight,
+    })
 }
 
 #[tauri::command]
-async fn preflight_pdf(json_data: String) -> Result<ResumePreflight, String> {
-    let temp_dir = "/tmp/coverpro";
-    std::fs::create_dir_all(temp_dir)
-        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
-
-    let data_path = format!("{}/preflight-data.json", temp_dir);
-    let resume_template_path = format!("{}/preflight-resume.typ", temp_dir);
-
-    std::fs::write(&data_path, &json_data)
-        .map_err(|e| format!("Failed to write data JSON: {}", e))?;
-    std::fs::write(&resume_template_path, RESUME_TEMPLATE)
-        .map_err(|e| format!("Failed to write resume template: {}", e))?;
-
-    let font_paths = default_font_paths();
-    let preflight = match run_typst_query(&resume_template_path, &data_path, &font_paths) {
+async fn preflight_pdf(_app: AppHandle, json_data: String) -> Result<ResumePreflight, String> {
+    let data_value: serde_json::Value = serde_json::from_str(&json_data)
+        .map_err(|e| format!("Failed to parse preflight JSON: {}", e))?;
+    let preflight = match run_typst_query(RESUME_TEMPLATE, data_value) {
         Ok(preflight) => preflight,
         Err(stderr) => preflight_with_failure(
             "resume_preflight_failed",
@@ -1057,10 +1072,6 @@ async fn preflight_pdf(json_data: String) -> Result<ResumePreflight, String> {
             Some(serde_json::json!({ "stderr": stderr })),
         ),
     };
-
-    let _ = std::fs::remove_file(&data_path);
-    let _ = std::fs::remove_file(&resume_template_path);
-
     Ok(preflight)
 }
 
@@ -1077,7 +1088,22 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![greet, run_claude_code, run_with_backend, kill_process, kill_all_processes, read_file, write_file, append_to_file, get_gtk_colors, export_pdf, preflight_pdf, measure_typst_bullets, check_storage_permission, get_default_output_dir])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            run_claude_code,
+            run_with_backend,
+            kill_process,
+            kill_all_processes,
+            read_file,
+            write_file,
+            append_to_file,
+            get_gtk_colors,
+            export_pdf,
+            preflight_pdf,
+            measure_typst_bullets,
+            check_storage_permission,
+            get_default_output_dir
+        ])
         .setup(|app| {
             theme::watch_gtk_theme(app.handle().clone());
             Ok(())
@@ -1088,7 +1114,294 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{finalize_preflight, parse_preflight_query_output, parse_typst_length_pt, preflight_with_failure, PreflightSectionMetric, ResumePreflight};
+    use super::{
+        finalize_preflight, parse_preflight_query_output, parse_typst_length_pt,
+        preflight_with_failure, run_bullet_measure_query, run_typst_query, BulletMeasureInput,
+        PreflightSectionMetric, ResumePreflight, BULLET_MEASURE_TEMPLATE, RESUME_TEMPLATE,
+    };
+
+    fn make_bullets(items: &[(&str, &str)]) -> Vec<BulletMeasureInput> {
+        items
+            .iter()
+            .map(|(key, text)| BulletMeasureInput {
+                field_key: (*key).to_string(),
+                text: (*text).to_string(),
+            })
+            .collect()
+    }
+
+    /// Build a resume data fixture. `project_bullets` and `job_bullets` are
+    /// independent so tests can isolate which sections drive overflow.
+    fn resume_fixture(
+        job_bullets: usize,
+        project_bullets: usize,
+        bullet_text: &str,
+    ) -> serde_json::Value {
+        let jobs: Vec<&str> = std::iter::repeat(bullet_text).take(job_bullets).collect();
+        let projects: Vec<&str> = std::iter::repeat(bullet_text)
+            .take(project_bullets)
+            .collect();
+        serde_json::json!({
+            "jobTitle": "Senior Content Strategist",
+            "summary": "Twenty years across editorial systems, content strategy, and SEO architecture.",
+            "experience": {
+                "labDemand": jobs,
+                "focusDigital": jobs,
+                "firstPageSage": jobs,
+                "learMarketing": jobs,
+                "ebay": [],
+                "gestallt": projects,
+                "coverpro": projects,
+                "traverse": [],
+                "daylight": [],
+                "openswarm": [],
+                "earlierExperience": "Earlier roles include freelance writing and SEO consulting."
+            }
+        })
+    }
+
+    // ─── End-to-end engine tests using bundled fonts ───
+    // These run the real typst engine in-process. They prove font bundling
+    // works (no missing-glyph fallbacks), the data-as-input path is wired
+    // correctly, and label-selector queries return the expected metadata.
+
+    #[test]
+    fn bullet_measure_short_text_fits_single_line() {
+        let bullets = make_bullets(&[("short", "Built a thing in three weeks.")]);
+        let data = serde_json::json!({ "bullets": bullets });
+        let result = run_bullet_measure_query(BULLET_MEASURE_TEMPLATE, data, &bullets)
+            .expect("bullet measurement succeeds");
+        assert_eq!(result.len(), 1);
+        let m = &result[0];
+        assert!(m.single_line, "30-char bullet should fit on one line");
+        assert_eq!(m.estimated_line_count, Some(1));
+        assert_eq!(m.estimated_trim_chars, None);
+    }
+
+    #[test]
+    fn bullet_measure_long_text_wraps() {
+        // ~280 chars, well past the 7.1in content-width budget for Mulish 10pt.
+        let long = "Led a cross-functional initiative spanning content operations, technical SEO, and editorial governance, partnering with engineering, product, and design teams to deliver measurable improvements in organic traffic, lead quality, and downstream pipeline conversion across enterprise verticals.";
+        let bullets = make_bullets(&[("long", long)]);
+        let data = serde_json::json!({ "bullets": bullets });
+        let result = run_bullet_measure_query(BULLET_MEASURE_TEMPLATE, data, &bullets)
+            .expect("bullet measurement succeeds");
+        assert_eq!(result.len(), 1);
+        let m = &result[0];
+        assert!(!m.single_line, "long bullet must not be marked single_line");
+        assert!(
+            m.estimated_line_count.unwrap_or(0) >= 2,
+            "expected ≥2 wrapped lines, got {:?}",
+            m.estimated_line_count
+        );
+        assert!(
+            m.overflow_width_pt.unwrap_or(0.0) > 0.0,
+            "long bullet must report overflow width >0"
+        );
+        assert!(
+            m.estimated_trim_chars.unwrap_or(0) > 0,
+            "long bullet must suggest trimming chars"
+        );
+    }
+
+    #[test]
+    fn bullet_measure_borderline_bullet_reports_overflow() {
+        // Just past the single-line budget — should overflow but only by a sliver.
+        let borderline = "Owned the full editorial pipeline across web, email, and partner channels for a portfolio of fifteen B2B brands during fiscal year twenty twenty-four end.";
+        let bullets = make_bullets(&[("borderline", borderline)]);
+        let data = serde_json::json!({ "bullets": bullets });
+        let result = run_bullet_measure_query(BULLET_MEASURE_TEMPLATE, data, &bullets)
+            .expect("bullet measurement succeeds");
+        let m = &result[0];
+        assert!(
+            !m.single_line,
+            "borderline bullet length {} chars should overflow content-width",
+            borderline.len()
+        );
+    }
+
+    #[test]
+    fn resume_preflight_minimal_fits_one_page() {
+        // 1 short bullet per job, no project bullets — leanest realistic resume.
+        let data = resume_fixture(1, 0, "Shipped a feature.");
+        let preflight = run_typst_query(RESUME_TEMPLATE, data).expect("preflight runs");
+        assert_eq!(
+            preflight.page_count, 1,
+            "minimal resume must render in 1 page (got {} pages)",
+            preflight.page_count
+        );
+        assert!(
+            preflight.failures.is_empty(),
+            "minimal resume must have no preflight failures, got {:?}",
+            preflight.failures.iter().map(|f| &f.code).collect::<Vec<_>>()
+        );
+        assert!(
+            preflight.content_width_pt.unwrap_or(0.0) > 500.0,
+            "content_width should be ~511pt (7.1in), got {:?}",
+            preflight.content_width_pt
+        );
+    }
+
+    #[test]
+    fn bundled_fonts_cover_all_template_glyphs() {
+        // Every codepoint used by the templates (or by symbol shorthands like
+        // `sym.bullet` / `sym.bar.v`) must be present in at least one bundled
+        // font, otherwise typst silently falls back to its embedded fallback
+        // font and the rendered character looks visually off.
+        use typst::text::Font;
+        let mut all_chars = std::collections::HashSet::new();
+        for raw in super::typst_engine::EMBEDDED_FONTS {
+            let bytes = typst::foundations::Bytes::new(raw.to_vec());
+            for font in Font::iter(bytes) {
+                for c in font.ttf().tables().cmap.iter().flat_map(|c| c.subtables) {
+                    subtable_codepoints(c, &mut all_chars);
+                }
+            }
+        }
+        // Codepoints referenced literally in templates/lib.rs:
+        //   • U+2022 BULLET  (body bullet, sym.bullet)
+        //   — U+2014 EM DASH (project section labels)
+        //   | U+007C VERTICAL LINE (education separator)
+        let required: &[(char, &str)] = &[
+            ('\u{2022}', "BULLET"),
+            ('\u{2014}', "EM DASH"),
+            ('\u{007C}', "VERTICAL LINE"),
+        ];
+        for (c, name) in required {
+            assert!(
+                all_chars.contains(c),
+                "no bundled font contains required glyph U+{:04X} {}",
+                *c as u32,
+                name
+            );
+        }
+        // And explicitly assert the old buggy bullet (BLACK CIRCLE) is *not*
+        // a required codepoint anymore — guards against regressions.
+        let template_src = super::RESUME_TEMPLATE.to_string()
+            + super::COVER_LETTER_TEMPLATE
+            + super::BULLET_MEASURE_TEMPLATE;
+        assert!(
+            !template_src.contains('\u{25CF}'),
+            "templates still reference U+25CF BLACK CIRCLE which no bundled font supports"
+        );
+    }
+
+    fn subtable_codepoints(
+        subtable: ttf_parser::cmap::Subtable,
+        out: &mut std::collections::HashSet<char>,
+    ) {
+        subtable.codepoints(|cp| {
+            if let Some(c) = char::from_u32(cp) {
+                out.insert(c);
+            }
+        });
+    }
+
+    /// Build a fixture matching the per-section bullet distribution that one
+    /// of the 8 resume modes actually exports to the PDF. Keys mirror the
+    /// fields rendered by templates/resume.typ — OpenSwarm bullets, if any,
+    /// are intentionally omitted because that section has no Typst block.
+    struct ModeShape {
+        name: &'static str,
+        lab_demand: usize,
+        focus_digital: usize,
+        first_page_sage: usize,
+        lear_marketing: usize,
+        ebay: usize,
+        gestallt: usize,
+        coverpro: usize,
+        traverse: usize,
+        daylight: usize,
+        openswarm: usize,
+    }
+
+    fn mode_fixture(shape: &ModeShape, bullet_text: &str) -> serde_json::Value {
+        let fill = |n: usize| -> Vec<&str> { std::iter::repeat(bullet_text).take(n).collect() };
+        serde_json::json!({
+            "jobTitle": "Senior Content Strategist",
+            "summary": "Twenty years across editorial systems, content strategy, and SEO architecture.",
+            "experience": {
+                "labDemand": fill(shape.lab_demand),
+                "focusDigital": fill(shape.focus_digital),
+                "firstPageSage": fill(shape.first_page_sage),
+                "learMarketing": fill(shape.lear_marketing),
+                "ebay": fill(shape.ebay),
+                "gestallt": fill(shape.gestallt),
+                "coverpro": fill(shape.coverpro),
+                "traverse": fill(shape.traverse),
+                "daylight": fill(shape.daylight),
+                "openswarm": fill(shape.openswarm),
+                "earlierExperience": "Earlier roles include freelance writing and SEO consulting."
+            }
+        })
+    }
+
+    #[test]
+    fn resume_preflight_each_mode_fits_one_page() {
+        // Distributions come straight from RESUME_MODE_DEFINITIONS in
+        // app/src/lib/config/resume-modes.ts. devrel and fe now use the
+        // openswarm field (newly added to resume.typ) for the OpenSwarm
+        // bullets. Content mode is tested in both either/or branches.
+        let shapes = [
+            ModeShape { name: "pm",          lab_demand: 1, focus_digital: 2, first_page_sage: 0, lear_marketing: 1, ebay: 0, gestallt: 3, coverpro: 2, traverse: 0, daylight: 2, openswarm: 0 },
+            ModeShape { name: "content-ebay", lab_demand: 1, focus_digital: 5, first_page_sage: 3, lear_marketing: 3, ebay: 3, gestallt: 0, coverpro: 0, traverse: 0, daylight: 0, openswarm: 0 },
+            ModeShape { name: "content-gestallt", lab_demand: 1, focus_digital: 5, first_page_sage: 3, lear_marketing: 3, ebay: 0, gestallt: 2, coverpro: 0, traverse: 0, daylight: 0, openswarm: 0 },
+            ModeShape { name: "fme",         lab_demand: 2, focus_digital: 3, first_page_sage: 0, lear_marketing: 1, ebay: 0, gestallt: 2, coverpro: 1, traverse: 0, daylight: 0, openswarm: 0 },
+            ModeShape { name: "pmm",         lab_demand: 2, focus_digital: 3, first_page_sage: 0, lear_marketing: 1, ebay: 0, gestallt: 2, coverpro: 1, traverse: 1, daylight: 0, openswarm: 0 },
+            ModeShape { name: "devrel",      lab_demand: 0, focus_digital: 1, first_page_sage: 0, lear_marketing: 1, ebay: 0, gestallt: 2, coverpro: 2, traverse: 1, daylight: 0, openswarm: 2 },
+            ModeShape { name: "dxe",         lab_demand: 0, focus_digital: 1, first_page_sage: 0, lear_marketing: 1, ebay: 0, gestallt: 2, coverpro: 2, traverse: 2, daylight: 1, openswarm: 0 },
+            ModeShape { name: "isd",         lab_demand: 0, focus_digital: 1, first_page_sage: 0, lear_marketing: 1, ebay: 0, gestallt: 2, coverpro: 2, traverse: 3, daylight: 1, openswarm: 0 },
+            ModeShape { name: "fe",          lab_demand: 1, focus_digital: 0, first_page_sage: 0, lear_marketing: 0, ebay: 0, gestallt: 2, coverpro: 2, traverse: 0, daylight: 3, openswarm: 2 },
+        ];
+        let bullet = "Drove measurable lift in organic traffic by rebuilding the editorial taxonomy across nine brands.";
+        assert!(
+            (90..=110).contains(&bullet.len()),
+            "fixture bullet length {} should sit inside the 90–110 char band",
+            bullet.len()
+        );
+
+        for shape in &shapes {
+            let data = mode_fixture(shape, bullet);
+            let preflight = run_typst_query(RESUME_TEMPLATE, data)
+                .unwrap_or_else(|e| panic!("[{}] preflight runs: {}", shape.name, e));
+            assert_eq!(
+                preflight.page_count, 1,
+                "[{}] resume must render in 1 page (got {} pages, failures={:?})",
+                shape.name,
+                preflight.page_count,
+                preflight.failures.iter().map(|f| &f.code).collect::<Vec<_>>()
+            );
+            assert!(
+                preflight.failures.is_empty(),
+                "[{}] resume must have no preflight failures, got {:?}",
+                shape.name,
+                preflight.failures.iter().map(|f| &f.code).collect::<Vec<_>>()
+            );
+            assert!(
+                preflight.sections.iter().any(|s| s.id == "education"),
+                "[{}] education section must appear in preflight metadata",
+                shape.name
+            );
+        }
+    }
+
+    #[test]
+    fn resume_preflight_overflow_emits_failure() {
+        // 12 bullets per role across 5 roles plus 4 project sections is well
+        // beyond what fits on one US Letter page at 10pt.
+        let bullet = "Delivered measurable results across multiple cross-functional initiatives spanning quarters.";
+        let data = resume_fixture(12, 4, bullet);
+        let preflight = run_typst_query(RESUME_TEMPLATE, data).expect("preflight runs");
+        let codes: Vec<&str> = preflight.failures.iter().map(|f| f.code.as_str()).collect();
+        assert!(
+            preflight.page_count > 1
+                || codes.contains(&"resume_exceeds_page_budget")
+                || codes.contains(&"resume_content_exceeds_available_height"),
+            "overflowing resume must emit page/height failure or render >1 page; got page_count={} failures={:?}",
+            preflight.page_count,
+            codes
+        );
+    }
 
     #[test]
     fn parses_typst_lengths_into_points() {
@@ -1146,7 +1459,10 @@ mod tests {
 
         assert_eq!(finalized.failures.len(), 2);
         assert_eq!(finalized.failures[0].code, "resume_exceeds_page_budget");
-        assert_eq!(finalized.failures[1].code, "resume_content_exceeds_available_height");
+        assert_eq!(
+            finalized.failures[1].code,
+            "resume_content_exceeds_available_height"
+        );
     }
 
     #[test]

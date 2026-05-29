@@ -98,6 +98,9 @@
     if (code === 'resume_preflight_failed' || code === 'resume_exceeds_page_budget' || code === 'resume_content_exceeds_available_height') {
       return 'resume layout preflight';
     }
+    if (code === 'typst_unavailable_on_android') {
+      return 'Typst runtime';
+    }
     if (code === 'resume_compile_failed') {
       return 'resume PDF compilation';
     }
@@ -423,14 +426,14 @@
     </fieldset>
     {/if}
 
-    <!-- ContextMax -->
-    {#if fields.contextmax.length > 0}
+    <!-- Traverse -->
+    {#if fields.traverse.length > 0}
     <fieldset class="field-group">
-      <legend class="emp-contextmax">ContextMax ({fields.contextmax.length} bullets)</legend>
-      {#each fields.contextmax as _, i}
+      <legend class="emp-traverse">Traverse ({fields.traverse.length} bullets)</legend>
+      {#each fields.traverse as _, i}
         <div class="bullet-row">
-          <input type="text" class="field-input" bind:value={fields.contextmax[i]} oninput={handleFieldEdit} />
-          <span class="charcount" class:out-of-range={fields.contextmax[i].length < 80 || fields.contextmax[i].length > 110}>{fields.contextmax[i].length}</span>
+          <input type="text" class="field-input" bind:value={fields.traverse[i]} oninput={handleFieldEdit} />
+          <span class="charcount" class:out-of-range={fields.traverse[i].length < 80 || fields.traverse[i].length > 110}>{fields.traverse[i].length}</span>
         </div>
       {/each}
     </fieldset>
@@ -845,7 +848,7 @@
   .emp-gestallt { color: rgb(var(--color-tertiary-700)); }
   .emp-coverpro { color: rgb(var(--color-tertiary-700)); }
   .emp-daylight { color: rgb(var(--color-tertiary-700)); }
-  .emp-contextmax { color: rgb(var(--color-tertiary-700)); }
+  .emp-traverse { color: rgb(var(--color-tertiary-700)); }
   .emp-ebay { color: rgb(var(--color-accent-500)); }
   .emp-earlier { color: var(--text-muted); }
   .emp-cover-letter { color: var(--accent-color); }

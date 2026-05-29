@@ -426,23 +426,25 @@ export const EXPERIENCE_DATA: ExperienceDataShape = {
   // ============================================================
   openswarm: {
     company: "OpenSwarm (Personal Project)",
-    role: "Multi-Agent Orchestration System (Rust + WebSockets + PTY)",
+    role: "Multi-Agent Orchestration with Mobile Remote Control (Rust + GTK4 + Tauri)",
     bulletVariants: {
       default: [
-        "Architected desktop agent supervisor with mobile remote control—WebSocket protocol for cross-network orchestration.",
-        "Built PTY process management with signal handling and crash recovery—mobile disconnect doesn't orphan agents.",
+        "Architected multi-backend agent supervisor (PTY, Claude WebSocket, Codex JSON-RPC) under one polymorphic layer.",
+        "Shipped Android client spawning coding agents over a Tailscale-secured WebSocket tunnel.",
       ],
       dbeaver: [
-        "Architected desktop agent supervisor with mobile remote control—WebSocket protocol for cross-network orchestration, enabling agent spawning from phone over cellular network.",
-        "Built PTY process management with signal handling and crash recovery—mobile disconnect doesn't orphan agents, graceful shutdown on supervisor exit.",
-        "Designed supervisor pattern managing agent lifecycle across platforms—spawn, monitor, restart from phone or desktop with consistent state synchronization.",
+        "Architected multi-backend agent supervisor (PTY, Claude WebSocket, Codex JSON-RPC) under one polymorphic layer.",
+        "Reverse-engineered Claude Code's WebSocket SDK protocol from transcript logs to ship a compliant agent server.",
+        "Built a ghost PTY probe scraping /usage percentages from a headless Claude—data the CLI never exposed via API.",
       ],
     },
     sectionScopes: {
       allowed: [
-        "multi-agent", "WebSocket", "PTY", "process management", "signal handling",
-        "crash recovery", "supervisor pattern", "mobile remote control", "orchestration",
-        "cross-platform", "agent lifecycle", "distributed systems",
+        "multi-agent", "WebSocket", "PTY", "JSON-RPC", "Tailscale", "ghost probe",
+        "process management", "signal handling", "crash recovery", "supervisor pattern",
+        "mobile remote control", "orchestration", "cross-platform", "agent lifecycle",
+        "distributed systems", "protocol reverse engineering", "GTK4", "VTE4",
+        "Codex", "Claude Code", "Tauri", "SvelteKit", "Android",
       ],
       disallowed: [
         "auto dealer", "OEM", "ISO 17025", "EMC", "HVAC", "solar",
@@ -451,7 +453,7 @@ export const EXPERIENCE_DATA: ExperienceDataShape = {
     },
     tags: [
       "distributed systems", "agent orchestration", "mobile integration",
-      "process management", "cross-platform",
+      "process management", "protocol reverse engineering", "cross-platform",
     ],
   },
 

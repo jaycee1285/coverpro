@@ -41,7 +41,7 @@ export interface StructuredPmmPackage extends StructuredPackageBase {
   technicalProjects: {
     gestallt: string[];
     coverpro: string[];
-    contextMax: string[];
+    traverse: string[];
   };
   independentConsultingExperience: string[];
   focusDigitalExperience: string[];
@@ -206,8 +206,8 @@ export function renderStructuredPackageToMarkdown(pkg: StructuredPackage): strin
     lines.push(...renderBullets(pkg.technicalProjects.gestallt));
     lines.push('### CoverPro');
     lines.push(...renderBullets(pkg.technicalProjects.coverpro));
-    lines.push('### ContextMax');
-    lines.push(...renderBullets(pkg.technicalProjects.contextMax));
+    lines.push('### Traverse');
+    lines.push(...renderBullets(pkg.technicalProjects.traverse));
     lines.push('');
     lines.push(...renderSection('Independent Consulting Experience', pkg.independentConsultingExperience));
     lines.push('');
@@ -315,8 +315,8 @@ function validateStructuredPmmPackage(
   if (!gestallt.ok) return gestallt;
   const coverpro = validateStringArray(parsed.technicalProjects.coverpro, 'technicalProjects.coverpro', 1);
   if (!coverpro.ok) return coverpro;
-  const contextMax = validateStringArray(parsed.technicalProjects.contextMax, 'technicalProjects.contextMax', 1);
-  if (!contextMax.ok) return contextMax;
+  const traverse = validateStringArray(parsed.technicalProjects.traverse, 'technicalProjects.traverse', 1);
+  if (!traverse.ok) return traverse;
   const independent = validateStringArray(parsed.independentConsultingExperience, 'independentConsultingExperience', 2);
   if (!independent.ok) return independent;
   const focusDigital = validateStringArray(parsed.focusDigitalExperience, 'focusDigitalExperience', 3);
@@ -335,7 +335,7 @@ function validateStructuredPmmPackage(
       technicalProjects: {
         gestallt: gestallt.value,
         coverpro: coverpro.value,
-        contextMax: contextMax.value,
+        traverse: traverse.value,
       },
       independentConsultingExperience: independent.value,
       focusDigitalExperience: focusDigital.value,

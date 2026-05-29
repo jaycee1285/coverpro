@@ -91,6 +91,11 @@ const COVER_LETTER_VIOLATIONS = {
   ],
 };
 
+// Forbidden summary phrases (hard fail)
+const SUMMARY_FORBIDDEN_PATTERNS: { label: string; pattern: RegExp }[] = [
+  { label: 'selected angle', pattern: /\bselected\s*angle\b/i },
+];
+
 // Character limits
 const MIN_CHAR_LENGTH = 80;
 const MAX_CHAR_LENGTH = 110;
@@ -128,6 +133,8 @@ const BLOCK_TO_EMPLOYER: Record<string, keyof typeof EXPERIENCE_DATA> = {
   'first page sage': 'firstPageSage',
   'lear marketing': 'learMarketing',
   'technical projects': 'gestallt',
+  'openswarm': 'openswarm',
+  'traverse': 'daylight',
   'ebay': 'ebay',
 };
 
@@ -161,6 +168,8 @@ export function getBulletFieldLabel(blockName: string, bulletIndex: number): str
   return `${blockName} bullet ${bulletIndex + 1}`;
 }
 
+const TITLE_FIELD_KEY = 'title:block';
+
 export function lintMarkdown(markdown: string, resumeMode: ResumeMode = 'content'): LintResult {
   const errors: LintError[] = [];
   const lines = markdown.split('\n');
@@ -176,6 +185,7 @@ export function lintMarkdown(markdown: string, resumeMode: ResumeMode = 'content
   lintEmploymentDates(markdown, errors);
   lintMetrics(markdown, errors);
   lintProjectNames(markdown, errors);
+  lintTitleForbiddenPhrases(lines, errors);
 
   // Lint each block for format
   for (const block of blocks) {
@@ -339,6 +349,12 @@ export function lintMarkdown(markdown: string, resumeMode: ResumeMode = 'content
     lintLearMarketingTokens(lmBlock, errors);
   }
 
+  // Lint Summary for forbidden framing text
+  const summaryBlock = blocks.find(b => b.name.toLowerCase().includes('summary'));
+  if (summaryBlock) {
+    lintSummaryForbiddenPhrases(summaryBlock, errors);
+  }
+
   // Lint Focus Digital for required metrics (mode-specific)
   const fdBlock = blocks.find(b => b.name.toLowerCase().includes('focus digital'));
   if (fdBlock) {
@@ -426,22 +442,24 @@ function lintLineLength(
 ): void {
   const length = text.length;
   if (length < MIN_CHAR_LENGTH) {
+    // Hard fail: short lines lack the specificity expected of resume copy.
     errors.push({
       code: 'bullet-too-short',
       block: blockName,
       line,
-      message: `Line is outside the old heuristic range (${length} chars, target ${MIN_CHAR_LENGTH}-${MAX_CHAR_LENGTH}): "${text.slice(0, 40)}..."`,
-      severity: 'warning',
+      message: `Line is too short (${length} chars, minimum ${MIN_CHAR_LENGTH}): "${text.slice(0, 60)}". Add specifics — outcome, metric, scope, or technical detail.`,
+      severity: 'error',
       fieldKeys: fieldKey ? [fieldKey] : undefined,
       fieldKey,
       fieldLabel,
     });
   } else if (length > MAX_CHAR_LENGTH) {
+    // Soft warn: typst preflight is the authoritative check on actual page-fit.
     errors.push({
       code: 'bullet-too-long',
       block: blockName,
       line,
-      message: `Line is outside the old heuristic range (${length} chars, target ${MIN_CHAR_LENGTH}-${MAX_CHAR_LENGTH}): "${text.slice(0, 40)}..."`,
+      message: `Line exceeds ${MAX_CHAR_LENGTH}-char heuristic (${length} chars): "${text.slice(0, 60)}...". Typst will measure actual width; trim if it wraps.`,
       severity: 'warning',
       fieldKeys: fieldKey ? [fieldKey] : undefined,
       fieldKey,
@@ -510,6 +528,49 @@ function lintLearMarketingTokens(block: BulletBlock, errors: LintError[]): void 
         fieldKeys: [getSectionFieldKey(block.name)],
       });
     }
+  }
+}
+
+function lintSummaryForbiddenPhrases(block: BulletBlock, errors: LintError[]): void {
+  if (block.bullets.length === 0) return;
+
+  for (const { label, pattern } of SUMMARY_FORBIDDEN_PATTERNS) {
+    for (const bullet of block.bullets) {
+      if (!pattern.test(bullet.text)) continue;
+
+      const fieldKey = getBulletFieldKey(block.name, bullet.index);
+      errors.push({
+        code: 'summary-forbidden-phrase',
+        block: block.name,
+        line: bullet.line,
+        message: `Summary contains forbidden phrase: "${label}". Remove framing text like "Selected angle: ...".`,
+        severity: 'error',
+        fieldKeys: [fieldKey],
+        fieldKey,
+        fieldLabel: getBulletFieldLabel(block.name, bullet.index),
+      });
+    }
+  }
+}
+
+function lintTitleForbiddenPhrases(lines: string[], errors: LintError[]): void {
+  const titleIndex = lines.findIndex((line) => /^#\s+/.test(line));
+  if (titleIndex === -1) return;
+
+  const title = lines[titleIndex].replace(/^#\s+/, '').trim();
+  for (const { label, pattern } of SUMMARY_FORBIDDEN_PATTERNS) {
+    if (!pattern.test(title)) continue;
+
+    errors.push({
+      code: 'title-forbidden-phrase',
+      block: 'Title',
+      line: titleIndex + 1,
+      message: `Title contains forbidden phrase: "${label}". Remove internal framing text like "Selected angle: ...".`,
+      severity: 'error',
+      fieldKeys: [TITLE_FIELD_KEY],
+      fieldKey: TITLE_FIELD_KEY,
+      fieldLabel: 'title line',
+    });
   }
 }
 

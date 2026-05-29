@@ -25,15 +25,13 @@ echo "==> Building CoverPro APK"
 
 # Android SDK/NDK paths
 ANDROID_SDK="$HOME/.local/share/android-sdk"
-NDK_VERSION="25.1.8937393"
+NDK_VERSION="27.2.12479018"
 NDK_PATH="$ANDROID_SDK/ndk/$NDK_VERSION"
 
 # Verify NDK exists
 if [[ ! -d "$NDK_PATH" ]]; then
   echo "Error: NDK not found at $NDK_PATH"
-  echo "Install with: curl -LO https://dl.google.com/android/repository/android-ndk-r25b-linux.zip"
-  echo "             unzip android-ndk-r25b-linux.zip -d $ANDROID_SDK/ndk/"
-  echo "             mv $ANDROID_SDK/ndk/android-ndk-r25b $NDK_PATH"
+  echo "Install via Android SDK Manager: sdkmanager 'ndk;27.2.12479018'"
   exit 1
 fi
 
@@ -104,5 +102,13 @@ echo "==> Signing APK..."
   --ks debug.keystore --ks-pass pass:android \
   --out coverpro.apk \
   "$UNSIGNED_APK"
+
+SYNCTHING_DIR="$HOME/syncthing"
+if [[ -d "$SYNCTHING_DIR" ]]; then
+  cp coverpro.apk "$SYNCTHING_DIR/coverpro.apk"
+  echo "==> Copied to $SYNCTHING_DIR/coverpro.apk"
+else
+  echo "Warning: Syncthing directory not found at $SYNCTHING_DIR; skipping copy"
+fi
 
 echo "==> Done: $(pwd)/coverpro.apk"

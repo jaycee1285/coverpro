@@ -4,6 +4,7 @@
   import type { LintError } from '$lib/types';
   import type { RejectedCandidateDebug } from '$lib/services/runner';
   import type { ExportFitDiagnostics, PreflightFailure } from '$lib/utils/pdf-export';
+  import type { RepairRouteResult, RepairUnit } from '$lib/utils/repair-router';
   import IconRefreshCw from '~icons/lucide/refresh-cw';
   import IconPause from '~icons/lucide/pause';
   import IconPlay from '~icons/lucide/play';
@@ -21,6 +22,9 @@
     draftMaxAttempts = 0,
     rejectedCandidateDebug = null,
     totalCost = null,
+    repairRoute = null,
+    repairFixtureLabel = '',
+    repairProof = [],
     isPaused = false,
     isRepairing = false,
     checkpointPhase = null,
@@ -35,6 +39,7 @@
     onPause,
     onResume,
     onAcceptDraft,
+    onApplyLocalRepair,
     onRerun,
     onRescue,
     onExport,
@@ -50,6 +55,9 @@
     draftMaxAttempts?: number;
     rejectedCandidateDebug?: RejectedCandidateDebug | null;
     totalCost?: number | null;
+    repairRoute?: RepairRouteResult | null;
+    repairFixtureLabel?: string;
+    repairProof?: string[];
     isPaused?: boolean;
     isRepairing?: boolean;
     checkpointPhase?: 'pre-repair' | 'post-repair' | null;
@@ -64,6 +72,7 @@
     onPause?: () => void;
     onResume?: () => void;
     onAcceptDraft?: () => void;
+    onApplyLocalRepair?: (targetKey: string) => void | Promise<void>;
     onRerun?: () => void;
     onRescue?: () => void;
     onExport?: () => void;
@@ -78,6 +87,8 @@
   let warningCount = $derived(draftErrors.filter(e => e.severity === 'warning').length);
   let preflightFailureCount = $derived(draftFitDiagnostics?.preflight.failures.length ?? 0);
   let bulletFailureCount = $derived(draftFitDiagnostics?.bulletFailures.filter((failure) => failure.code === 'typst-bullet-too-wide').length ?? 0);
+  let activeRepairUnit = $derived(repairRoute?.units[0] ?? null);
+  let showPayloadPreview = $state(false);
 
   function formatCost(cost: number | null): string {
     if (typeof cost !== 'number' || !Number.isFinite(cost)) return '';
@@ -116,6 +127,38 @@
 
     const serialized = JSON.stringify(failure.details, null, 2);
     return serialized && serialized !== '{}' ? serialized : null;
+  }
+
+  function kindLabel(kind: RepairUnit['kind']): string {
+    if (kind === 'coverLetter') return 'cover letter';
+    return kind;
+  }
+
+  function unitNeedsLlm(unit: RepairUnit): boolean {
+    return unit.kind === 'section' || unit.kind === 'coverLetter' || unit.kind === 'line' || unit.kind === 'fallback';
+  }
+
+  function payloadPreview(unit: RepairUnit): string {
+    const reasons = unit.diagnostics.map((error) => `- ${error.message}`).join('\n');
+    return [
+      `Repair target: ${unit.label}`,
+      `Target kind: ${kindLabel(unit.kind)}`,
+      'Failure reason:',
+      reasons || '- No diagnostics provided',
+      '',
+      'Scoped content sent to LLM:',
+      unit.currentText || '(empty target text)',
+    ].join('\n');
+  }
+
+  function preservedLabel(target: string): string {
+    return target
+      .replace(/^section:/, '')
+      .replace(':block', '')
+      .split('-')
+      .filter(Boolean)
+      .map((part) => part[0]?.toUpperCase() + part.slice(1))
+      .join(' ');
   }
   // Copy functions use markdownToHtml for clipboard (Google Docs paste fidelity)
   async function copyAll() {
@@ -239,6 +282,77 @@
         </details>
       {/if}
     </div>
+  {/if}
+
+  {#if activeRepairUnit}
+    <section class="repair-scope" aria-label="Repair Scope">
+      <div class="repair-scope-header">
+        <div>
+          <h2>Repair Scope</h2>
+          {#if repairFixtureLabel}
+            <p>{repairFixtureLabel} fixture</p>
+          {/if}
+        </div>
+        <span class="repair-kind">{kindLabel(activeRepairUnit.kind)}</span>
+      </div>
+
+      <div class="repair-grid">
+        <div>
+          <span class="repair-label">Target</span>
+          <strong>{activeRepairUnit.label}</strong>
+        </div>
+        <div>
+          <span class="repair-label">LLM needed</span>
+          <strong>{unitNeedsLlm(activeRepairUnit) ? 'Maybe' : 'No'}</strong>
+        </div>
+      </div>
+
+      <div class="repair-reason">
+        <span class="repair-label">Failure reason</span>
+        <ul>
+          {#each activeRepairUnit.diagnostics as diagnostic}
+            <li>{diagnostic.message}</li>
+          {/each}
+        </ul>
+      </div>
+
+      <div class="repair-reason">
+        <span class="repair-label">Locked / preserved units</span>
+        <p>{activeRepairUnit.preservedTargets.map(preservedLabel).join(', ') || 'None'}</p>
+      </div>
+
+      <div class="repair-actions" aria-label="Repair actions">
+        {#if activeRepairUnit.kind === 'local' || activeRepairUnit.kind === 'line' || activeRepairUnit.kind === 'coverLetter'}
+          <button type="button" class="repair-action primary" onclick={() => onApplyLocalRepair?.(activeRepairUnit.targetKey)}>
+            Local fix
+          </button>
+        {/if}
+        <button type="button" class="repair-action">Edit unit</button>
+        <button type="button" class="repair-action" onclick={() => (showPayloadPreview = !showPayloadPreview)}>
+          Preview LLM payload
+        </button>
+        <button type="button" class="repair-action">Send scoped repair</button>
+        <button type="button" class="repair-action">Accept as-is</button>
+        <button type="button" class="repair-action" onclick={copyAll}>Save combined</button>
+        <button type="button" class="repair-action" onclick={copyResume}>Save resume-only</button>
+        <button type="button" class="repair-action" onclick={copyCoverLetter}>Save cover-letter-only</button>
+      </div>
+
+      {#if showPayloadPreview}
+        <pre class="repair-payload">{payloadPreview(activeRepairUnit)}</pre>
+      {/if}
+    </section>
+  {/if}
+
+  {#if repairProof.length > 0}
+    <section class="preservation-proof" aria-label="Preservation proof">
+      <h2>Preservation Proof</h2>
+      <ul>
+        {#each repairProof as proof}
+          <li>{proof}</li>
+        {/each}
+      </ul>
+    </section>
   {/if}
 
   <div class="output-body">
@@ -456,6 +570,121 @@
     display: flex;
     gap: var(--space-xs);
     flex-wrap: wrap;
+  }
+
+  .repair-scope {
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    background: color-mix(in srgb, var(--accent-color) 6%, var(--bg-primary));
+    display: grid;
+    gap: var(--space-sm);
+    font-size: 0.78rem;
+  }
+
+  .repair-scope-header {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    align-items: flex-start;
+  }
+
+  .repair-scope h2 {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+  }
+
+  .repair-scope p {
+    margin: 0.12rem 0 0;
+    color: var(--text-muted);
+  }
+
+  .repair-kind {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.15rem 0.45rem;
+    color: var(--accent-color);
+    background: var(--bg-card);
+    white-space: nowrap;
+  }
+
+  .repair-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .repair-label {
+    display: block;
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.15rem;
+  }
+
+  .repair-reason ul {
+    margin: 0;
+    padding-left: 1rem;
+    color: var(--text-primary);
+  }
+
+  .repair-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .repair-action {
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.74rem;
+    font-family: inherit;
+  }
+
+  .repair-action:hover {
+    background: var(--bg-hover);
+  }
+
+  .repair-action.primary {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+  }
+
+  .repair-payload {
+    margin: 0;
+    padding: var(--space-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--bg-secondary) 88%, black);
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 14rem;
+    overflow: auto;
+  }
+
+  .preservation-proof {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    background: color-mix(in srgb, rgb(var(--color-success-500, 34 197 94)) 7%, var(--bg-primary));
+    font-size: 0.76rem;
+  }
+
+  .preservation-proof h2 {
+    margin: 0 0 var(--space-xs);
+    font-size: 0.82rem;
+    color: var(--text-primary);
+  }
+
+  .preservation-proof ul {
+    margin: 0;
+    padding-left: 1rem;
+    color: var(--text-primary);
   }
 
   /* --- Buttons --- */

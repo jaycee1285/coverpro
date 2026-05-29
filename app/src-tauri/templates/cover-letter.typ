@@ -2,7 +2,7 @@
 // Simple body text with greeting and closing.
 // Usage: typst compile cover-letter.typ output.pdf --root / --input data=/path/to/data.json
 
-#let data = json(sys.inputs.at("data"))
+#let data = sys.inputs.at("data")
 
 #set page(
   paper: "us-letter",

@@ -25,16 +25,55 @@ The differentiator from PM: PM owns the product roadmap. PMM owns how the produc
 
 ## Section Allocation (One Page)
 
-| Section | Bullet Count | Why |
-|---------|-------------|-----|
-| Summary | 1 | PMM who understands developer products because he builds them. Pipeline-driven. |
-| Gestallt | 2 | **Product depth proof.** Multi-tenant RBAC, HIPAA compliance. Shows you understand the product at architecture level, not feature level. |
-| CoverPro | 1 | Multi-agent pipeline. Shows AI/developer-tools domain knowledge. |
-| ContextMax | 1 | Knowledge transfer system. Shows you understand developer onboarding — which IS product marketing for devtools. |
-| labDemand | 2 | **Pipeline proof.** 0→1 demand gen, regulated vertical. Shows you can own go-to-market from scratch. |
-| Focus Digital | 3 | **Metrics proof.** Qualified leads, revenue, engagement. Reframed for pipeline/positioning, not SEO execution. |
-| Lear Marketing | 1 | GTM for technical products. Positioning for founders who don't know how to talk about their own product. |
-| **Total** | **11 bullets + summary** | Balanced: 4 project bullets (product depth) + 6 marketing bullets (pipeline proof) + summary. |
+| Section        | Bullet Count         | Why                  |
+|----------------|----------------------|----------------------|
+| Summary        | 1                    | PMM who understands  |
+|                |                      | developer products   |
+|                |                      | because he builds    |
+|                |                      | them.                |
+|                |                      | Pipeline-driven.     |
+| Gestallt       | 2                    | **Product depth      |
+|                |                      | proof.**             |
+|                |                      | Multi-tenant RBAC,   |
+|                |                      | HIPAA compliance.    |
+|                |                      | Shows you understand |
+|                |                      | the product at       |
+|                |                      | architecture level,  |
+|                |                      | not feature level.   |
+| CoverPro       | 1                    | Multi-agent          |
+|                |                      | pipeline. Shows      |
+|                |                      | AI/developer-tools   |
+|                |                      | domain knowledge.    |
+| ContextMax     | 1                    | Knowledge transfer   |
+|                |                      | system. Shows you    |
+|                |                      | understand developer |
+|                |                      | onboarding — which   |
+|                |                      | IS product marketing |
+|                |                      | for devtools.        |
+| labDemand      | 2                    | **Pipeline proof.**  |
+|                |                      | 0→1 demand gen,      |
+|                |                      | regulated vertical.  |
+|                |                      | Shows you can own    |
+|                |                      | go-to-market from    |
+|                |                      | scratch.             |
+| Focus Digital  | 3                    | **Metrics proof.**   |
+|                |                      | Qualified leads,     |
+|                |                      | revenue, engagement. |
+|                |                      | Reframed for         |
+|                |                      | pipeline/positioning, |
+|                |                      | not SEO execution.   |
+| Lear Marketing | 1                    | GTM for technical    |
+|                |                      | products.            |
+|                |                      | Positioning for      |
+|                |                      | founders who don't   |
+|                |                      | know how to talk     |
+|                |                      | about their own      |
+|                |                      | product.             |
+| **Total**      | **11 bullets +       | Balanced: 4 project  |
+|                | summary**            | bullets (product     |
+|                |                      | depth) + 6 marketing |
+|                |                      | bullets (pipeline    |
+|                |                      | proof) + summary.    |
 
 **The balance matters**: Too many projects and it looks like an engineering resume. Too many marketing bullets and there's no product depth signal. 4 project + 6 marketing is the sweet spot — enough projects to prove credibility, enough marketing to prove pipeline capability.
 

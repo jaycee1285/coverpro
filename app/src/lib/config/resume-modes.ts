@@ -32,7 +32,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
       'technical projects': 7,
     },
     repairGuidance: [
-      'Technical Projects are REQUIRED: Gestallt (3 bullets), CoverPro (2 bullets), DayLight/ContextMax (2 bullets).',
+      'Technical Projects are REQUIRED: Gestallt (3 bullets), CoverPro (2 bullets), DayLight/Traverse (2 bullets).',
       'Focus Digital: EXACTLY 2 bullets, NO SEO metrics (631%, 366%, 241%, 14 leads, $25K).',
       'Lear Marketing: EXACTLY 1 bullet.',
       'Do NOT include First Page Sage.',
@@ -68,7 +68,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
     id: 'fme',
     shortLabel: 'FME',
     label: 'Founding Marketing Engineer',
-    description: 'labDemand centerpiece, 3 FD bullets with pipeline metrics, Gestallt + CoverPro, no ContextMax.',
+    description: 'labDemand centerpiece, 3 FD bullets with pipeline metrics, Gestallt + CoverPro, no Traverse.',
     expectedBulletCounts: {
       'summary': 1,
       'independent consult': 2,
@@ -88,7 +88,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
       'Do NOT use +631% impressions or +366% traffic; reframe for pipeline/funnel.',
       'Gestallt: EXACTLY 2 bullets. CoverPro: EXACTLY 1 bullet.',
       'Lear Marketing: EXACTLY 1 bullet.',
-      'Do NOT include ContextMax, DayLight, or First Page Sage sections.',
+      'Do NOT include Traverse, DayLight, or First Page Sage sections.',
     ],
   },
   {
@@ -110,7 +110,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
       messaging: 'PMM Focus Digital requires 2+ pipeline/positioning signals and must avoid SEO framing.',
     },
     repairGuidance: [
-      'Technical Projects: Gestallt (2 bullets), CoverPro (1 bullet), ContextMax (1 bullet) = 4 total.',
+      'Technical Projects: Gestallt (2 bullets), CoverPro (1 bullet), Traverse (1 bullet) = 4 total.',
       'Independent Consulting (labDemand): EXACTLY 2 bullets.',
       'Focus Digital: EXACTLY 3 bullets. Include 2+ of 14 qualified leads, $25K, 2.4x, competitive positioning.',
       'Do NOT use +631% or +366%.',
@@ -130,7 +130,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
       'technical projects': 7,
     },
     repairGuidance: [
-      'Technical Projects: OpenSwarm (2 bullets), Gestallt (2 bullets), CoverPro (2 bullets), ContextMax (1 bullet) = 7 total.',
+      'Technical Projects: OpenSwarm (2 bullets), Gestallt (2 bullets), CoverPro (2 bullets), Traverse (1 bullet) = 7 total.',
       'Focus Digital: EXACTLY 1 bullet.',
       'Lear Marketing: EXACTLY 1 bullet.',
       'Do NOT include labDemand or First Page Sage sections.',
@@ -140,7 +140,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
     id: 'dxe',
     shortLabel: 'DXE',
     label: 'DX Engineer',
-    description: 'ContextMax leads, DayLight for API design. No OpenSwarm/labDemand.',
+    description: 'Traverse leads, DayLight for API design. No OpenSwarm/labDemand.',
     expectedBulletCounts: {
       'summary': 1,
       'focus digital': 1,
@@ -148,7 +148,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
       'technical projects': 7,
     },
     repairGuidance: [
-      'Technical Projects: ContextMax (2 bullets), Gestallt (2 bullets), CoverPro (2 bullets), DayLight (1 bullet) = 7 total.',
+      'Technical Projects: Traverse (2 bullets), Gestallt (2 bullets), CoverPro (2 bullets), DayLight (1 bullet) = 7 total.',
       'Focus Digital: EXACTLY 1 bullet.',
       'Lear Marketing: EXACTLY 1 bullet.',
       'Do NOT include OpenSwarm, labDemand, or First Page Sage sections.',
@@ -158,7 +158,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
     id: 'isd',
     shortLabel: 'ISD',
     label: 'Internal Systems Developer',
-    description: 'ContextMax 3 bullets, DayLight support, strongest positioning fit.',
+    description: 'Traverse 3 bullets, DayLight support, strongest positioning fit.',
     expectedBulletCounts: {
       'summary': 1,
       'focus digital': 1,
@@ -166,7 +166,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
       'technical projects': 8,
     },
     repairGuidance: [
-      'Technical Projects: ContextMax (3 bullets), Gestallt (2 bullets), CoverPro (2 bullets), DayLight (1 bullet) = 8 total.',
+      'Technical Projects: Traverse (3 bullets), Gestallt (2 bullets), CoverPro (2 bullets), DayLight (1 bullet) = 8 total.',
       'Focus Digital: EXACTLY 1 bullet.',
       'Lear Marketing: EXACTLY 1 bullet.',
       'Do NOT include OpenSwarm, labDemand, or First Page Sage sections.',
@@ -185,7 +185,7 @@ export const RESUME_MODE_DEFINITIONS: ResumeModeDefinition[] = [
     repairGuidance: [
       'Technical Projects: DayLight (3 bullets), Gestallt (2 bullets), OpenSwarm (2 bullets), CoverPro (2 bullets) = 9 total.',
       'Independent Consulting (labDemand): EXACTLY 1 bullet.',
-      'Do NOT include Focus Digital, Lear Marketing, ContextMax, or First Page Sage sections. 100% projects.',
+      'Do NOT include Focus Digital, Lear Marketing, Traverse, or First Page Sage sections. 100% projects.',
     ],
   },
 ];

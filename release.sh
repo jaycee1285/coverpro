@@ -16,6 +16,8 @@ APP_NAME="coverpro"
 ARCH="$(uname -m)"
 PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
 TARBALL="${APP_NAME}-${TAG}-${PLATFORM}-${ARCH}.tar.xz"
+REPO="jaycee1285/coverpro"
+ASSET_URL="https://github.com/${REPO}/releases/download/${TAG}/${TARBALL}"
 
 echo "==> Building ${APP_NAME} ${TAG} (${PLATFORM}/${ARCH})"
 
@@ -91,18 +93,27 @@ echo "==> Creating ${TARBALL}"
 tar -cJf "$REPO_ROOT/$TARBALL" -C "$STAGING" "${APP_NAME}" share
 
 echo "==> Uploading to GitHub release ${TAG}"
-if gh release view "$TAG" --repo jaycee1285/coverpro &>/dev/null; then
-  gh release upload "$TAG" "$REPO_ROOT/$TARBALL" --repo jaycee1285/coverpro --clobber
+if gh release view "$TAG" --repo "$REPO" &>/dev/null; then
+  gh release upload "$TAG" "$REPO_ROOT/$TARBALL" --repo "$REPO" --clobber
 else
   gh release create "$TAG" "$REPO_ROOT/$TARBALL" \
-    --repo jaycee1285/coverpro \
+    --repo "$REPO" \
     --title "${APP_NAME} ${TAG}" \
     --notes "${APP_NAME} ${TAG}" \
     --latest
 fi
 
+echo "==> Release asset: ${ASSET_URL}"
+echo "==> SHA-256 for Nix flake input:"
+PREFETCH_JSON=$(nix store prefetch-file --json --hash-type sha256 "$ASSET_URL")
+echo "$PREFETCH_JSON" | grep -oP '"hash"\s*:\s*"\K[^"]+'
+PREFETCH_PATH=$(echo "$PREFETCH_JSON" | grep -oP '"storePath"\s*:\s*"\K[^"]+')
+if [[ -n "$PREFETCH_PATH" ]]; then
+  nix store delete "$PREFETCH_PATH" 2>/dev/null || true
+fi
+
 echo ""
-echo "==> Done! https://github.com/jaycee1285/coverpro/releases/tag/${TAG}"
+echo "==> Done! https://github.com/${REPO}/releases/tag/${TAG}"
 echo ""
 echo "    Tarball uploaded for non-NixOS systems."
 echo "    For NixOS: commit the staged build/ changes, then rebuild home-manager."

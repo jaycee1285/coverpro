@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test:repair-router": "bun test/test-repair-router.ts",
     "probe:typst-budgets": "bun scripts/probe-typst-budgets.mjs",
     "tauri": "tauri",
     "tauri:android:init": "tauri android init",

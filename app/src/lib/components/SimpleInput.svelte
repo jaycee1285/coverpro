@@ -8,11 +8,13 @@
   import { discoverModelsForBackend } from '$lib/services/model-catalog';
   import { loadApiSettings, loadModelDiscoverySettings } from '$lib/utils/settings';
   import QueueImport from '$lib/components/QueueImport.svelte';
+  import { REPAIR_FIXTURES } from '$lib/config/repair-fixtures';
 
   type Job = { jdText: string; jobTitle: string; company: string; slotIndex: number; resumeMode?: ResumeMode };
-  let { onRun, onImportRepair, onOpenSettings }: {
+  let { onRun, onImportRepair, onLoadRepairFixture, onOpenSettings }: {
     onRun: (jobs: Job[]) => void | Promise<void>;
     onImportRepair?: (file: File, resumeMode: ResumeMode) => void | Promise<void>;
+    onLoadRepairFixture?: (fixtureId: string) => void | Promise<void>;
     onOpenSettings?: () => void;
   } = $props();
 
@@ -34,6 +36,7 @@
   let repairImportError = $state('');
   let repairImportFileName = $state('');
   let repairFileInput = $state<HTMLInputElement | null>(null);
+  let selectedRepairFixture = $state(REPAIR_FIXTURES[0]?.id ?? '');
 
   const totalSlots = appStore.jobInputs.length;
 
@@ -302,7 +305,7 @@
     pendingJobs = [...pendingJobs];
   }
 
-  function openRepairImport() {
+  export function openRepairImport() {
     repairImportError = '';
     repairImportFileName = '';
     showRepairImport = true;
@@ -331,6 +334,12 @@
     } catch (err) {
       repairImportError = err instanceof Error ? err.message : 'Failed to import repair file.';
     }
+  }
+
+  async function loadSelectedRepairFixture() {
+    if (!selectedRepairFixture || !onLoadRepairFixture) return;
+    await onLoadRepairFixture(selectedRepairFixture);
+    closeRepairImport();
   }
 
 </script>
@@ -492,6 +501,20 @@
         <p class="repair-import-note">
           Pick a saved markdown package. It will load as the current package and jump directly to export.
         </p>
+
+        <div class="fixture-loader">
+          <label class="repair-import-label" for="repair-fixture-select">Dev fixture</label>
+          <div class="fixture-row">
+            <select id="repair-fixture-select" class="repair-import-select" bind:value={selectedRepairFixture}>
+              {#each REPAIR_FIXTURES as fixture}
+                <option value={fixture.id}>{fixture.label}</option>
+              {/each}
+            </select>
+            <button type="button" class="btn-confirm" onclick={loadSelectedRepairFixture}>
+              Load
+            </button>
+          </div>
+        </div>
 
         {#if repairImportFileName}
           <p class="repair-import-status">Selected: {repairImportFileName}</p>
@@ -1005,6 +1028,23 @@
 
   .repair-import-error {
     color: rgb(var(--color-error-500));
+  }
+
+  .fixture-loader {
+    display: grid;
+    gap: var(--space-xs);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--border-color);
+  }
+
+  .fixture-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .fixture-row .repair-import-select {
+    flex: 1;
   }
 
   .btn-primary {

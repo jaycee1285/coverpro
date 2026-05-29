@@ -168,7 +168,10 @@ pub fn watch_gtk_theme(app: AppHandle) {
             Err(_) => return,
         };
 
-        if watcher.watch(&config_dir, RecursiveMode::NonRecursive).is_err() {
+        if watcher
+            .watch(&config_dir, RecursiveMode::NonRecursive)
+            .is_err()
+        {
             return;
         }
 

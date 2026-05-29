@@ -404,15 +404,19 @@ function extractBulletText(markdown: string, fieldKey: string): string | null {
   return match ? match[1] : null;
 }
 
-function buildScopedBulletRepairPrompt(markdown: string, errors: LintError[]): string | null {
-  const bulletErrors = errors.filter(
-    (error) => error.severity === 'error' && error.fieldKey?.includes(':bullet:') && error.fieldLabel,
+function extractTitleLine(markdown: string): string | null {
+  return markdown.split('\n').find((line) => /^#\s+/.test(line)) || null;
+}
+
+function buildScopedLineRepairPrompt(markdown: string, errors: LintError[]): string | null {
+  const scopedErrors = errors.filter(
+    (error) => error.severity === 'error' && error.fieldKey && isScopedLineRepairField(error.fieldKey) && error.fieldLabel,
   );
-  if (bulletErrors.length === 0) return null;
+  if (scopedErrors.length === 0) return null;
 
-  const grouped = new Map<string, { label: string; block: string; original: string; reasons: string[] }>();
+  const grouped = new Map<string, { fieldKey: string; label: string; block: string; original: string; reasons: string[] }>();
 
-  for (const error of bulletErrors) {
+  for (const error of scopedErrors) {
     const fieldKey = error.fieldKey as string;
     const existing = grouped.get(fieldKey);
     if (existing) {
@@ -420,10 +424,13 @@ function buildScopedBulletRepairPrompt(markdown: string, errors: LintError[]): s
       continue;
     }
 
-    const original = extractBulletText(markdown, fieldKey);
+    const original = fieldKey === 'title:block'
+      ? extractTitleLine(markdown)
+      : extractBulletText(markdown, fieldKey);
     if (!original) return null;
 
     grouped.set(fieldKey, {
+      fieldKey,
       label: error.fieldLabel as string,
       block: error.block,
       original,
@@ -433,20 +440,22 @@ function buildScopedBulletRepairPrompt(markdown: string, errors: LintError[]): s
 
   const entries = Array.from(grouped.values());
 
-  return `Rewrite only the failing resume bullets below.
+  return `Rewrite only the failing resume line(s) below.
 
-Return exactly ${entries.length} bullet line(s), in the same order, each starting with "- ".
-Do not return headings, numbering, notes, explanations, or any unchanged bullets.
+Return exactly ${entries.length} line(s), in the same order.
+For title lines, start with "# ".
+For bullet lines, start with "- ".
+Do not return section headings, numbering, notes, explanations, or unchanged lines.
 
 Rules:
-- Keep each bullet in its original section/employer.
+- Keep each line in its original role.
 - Preserve the same facts, metrics, named entities, and claim.
 - Fix only the stated lint failures.
-- Target 80-110 characters.
-- End every bullet with a period.
+- For bullet lines, target 80-110 characters and end with a period.
+- For title lines, preserve the job title and company while removing internal notes.
 - Stay close to the original tone.
 
-Failing bullets:
+Failing lines:
 ${entries.map((entry) => `### ${entry.label}
 Section: ${entry.block}
 Original: ${entry.original}
@@ -455,11 +464,11 @@ ${entry.reasons.map((reason) => `- ${reason}`).join('\n')}`).join('\n\n')}
 `;
 }
 
-function applyScopedBulletRepair(baseMarkdown: string, repairResponse: string, failedFieldKeys: string[]): string | null {
+function applyScopedLineRepair(baseMarkdown: string, repairResponse: string, failedFieldKeys: string[]): string | null {
   const repairedLines = repairResponse
     .split('\n')
     .map((line) => line.trim())
-    .filter((line) => /^[-*]\s+/.test(line));
+    .filter((line) => /^#\s+/.test(line) || /^[-*]\s+/.test(line));
 
   if (repairedLines.length !== failedFieldKeys.length) {
     return null;
@@ -469,6 +478,12 @@ function applyScopedBulletRepair(baseMarkdown: string, repairResponse: string, f
 
   for (let i = 0; i < failedFieldKeys.length; i++) {
     const [blockKey, kind, indexText] = failedFieldKeys[i].split(':');
+    if (failedFieldKeys[i] === 'title:block') {
+      if (!/^#\s+/.test(repairedLines[i])) return null;
+      doc.titleLine = repairedLines[i];
+      continue;
+    }
+
     if (kind !== 'bullet') return null;
 
     const bulletIndex = Number(indexText) - 1;
@@ -484,6 +499,38 @@ function applyScopedBulletRepair(baseMarkdown: string, repairResponse: string, f
   }
 
   return stringifyEditableDocument(doc);
+}
+
+function isScopedLineRepairField(fieldKey: string): boolean {
+  return fieldKey === 'title:block' || fieldKey.includes(':bullet:');
+}
+
+function extractCoverLetterSection(markdown: string): string | null {
+  const match = markdown.match(/^## WAR Cover Letter\s*\n[\s\S]*?(?=^## |\s*$)/m);
+  return match ? match[0].trim() : null;
+}
+
+function hasCoverLetterRepairError(errors: LintError[]): boolean {
+  return errors.some((error) =>
+    error.fieldKey === 'war-cover-letter:block' ||
+    error.fieldKeys?.includes('war-cover-letter:block') ||
+    error.code === 'cover-letter-missing' ||
+    error.code?.startsWith('cover-letter-')
+  );
+}
+
+function preserveCoverLetterIfUnchanged(baseMarkdown: string, candidateMarkdown: string, errors: LintError[]): string {
+  if (hasCoverLetterRepairError(errors)) {
+    return candidateMarkdown;
+  }
+
+  const originalCoverLetter = extractCoverLetterSection(baseMarkdown);
+  const candidateCoverLetter = extractCoverLetterSection(candidateMarkdown);
+  if (!originalCoverLetter || !candidateCoverLetter) {
+    return candidateMarkdown;
+  }
+
+  return candidateMarkdown.replace(candidateCoverLetter, originalCoverLetter);
 }
 
 // Strip LLM reasoning preamble/postamble and fix duplicate/misnamed sections.
@@ -687,35 +734,38 @@ export async function runSingleJob(
       repairAttempts++;
       const errorCount = lintResult.errors.length;
       report(`Repair ${repairAttempts}/${MAX_REPAIR_ATTEMPTS} — ${errorCount} error${errorCount !== 1 ? 's' : ''}`);
-      const useScopedBulletRepair = canUseScopedBulletRepair(lintResult.errors);
-      const repairPrompt = useScopedBulletRepair
-        ? buildScopedBulletRepairPrompt(markdown, lintResult.errors)
+      const useScopedLineRepair = canUseScopedLineRepair(lintResult.errors);
+      const repairPrompt = useScopedLineRepair
+        ? buildScopedLineRepairPrompt(markdown, lintResult.errors)
         : buildRepairPrompt(markdown, lintResult.errors, mode);
       if (!repairPrompt) {
-        throw new Error('Scoped bullet repair prompt could not be built from localized lint errors.');
+        throw new Error('Scoped line repair prompt could not be built from localized lint errors.');
       }
       const repairResponse = await invokeLlm(repairPrompt, jobId, signal, undefined, undefined);
       recordInvocationCost(repairResponse.cost);
       const rawRepairResponse = repairResponse.text;
-      const repairedCandidate = useScopedBulletRepair
-        ? applyScopedBulletRepair(markdown, rawRepairResponse, failedFieldKeys)
+      const rawRepairedCandidate = useScopedLineRepair
+        ? applyScopedLineRepair(markdown, rawRepairResponse, failedFieldKeys)
         : normalizeGeneratedPackage(rawRepairResponse, mode);
+      const repairedCandidate = rawRepairedCandidate
+        ? preserveCoverLetterIfUnchanged(markdown, rawRepairedCandidate, lintResult.errors)
+        : null;
       if (!repairedCandidate) {
         lastRejectedCandidate = {
           phase: 'repair',
           attempt: repairAttempts,
-          reason: 'Scoped bullet repair response did not return the expected number of bullet lines.',
+          reason: 'Scoped line repair response did not return the expected number of lines.',
           rawText: rawRepairResponse,
           extractedMarkdown: rawRepairResponse,
         };
-        report('Repair candidate rejected — scoped bullet repair response was malformed');
+        report('Repair candidate rejected — scoped line repair response was malformed');
         lintResult = {
           valid: false,
           errors: [
             ...lintResult.errors,
             {
               block: 'Package',
-              message: 'Repair response rejected: scoped bullet repair response was malformed.',
+              message: 'Repair response rejected: scoped line repair response was malformed.',
               severity: 'error',
             },
           ],
@@ -748,7 +798,7 @@ export async function runSingleJob(
         continue;
       }
       markdown = !hasUnscopedErrors && failedFieldKeys.length > 0
-        ? (useScopedBulletRepair ? repairedCandidate : replaceFailedFields(markdown, repairedCandidate, failedFieldKeys))
+        ? (useScopedLineRepair ? repairedCandidate : replaceFailedFields(markdown, repairedCandidate, failedFieldKeys))
         : repairedCandidate;
       lastRejectedCandidate = null;
       lintResult = await lintMarkdownWithTypst(markdown, mode);
@@ -1070,8 +1120,36 @@ async function executeJob(run: Run, job: Job, signal: AbortSignal): Promise<void
       updateStatusDetail(run, job.id, `Repair ${repairAttempts}/${MAX_REPAIR_ATTEMPTS} — ${errorCount} error${errorCount !== 1 ? 's' : ''}`);
 
       // Attempt repair via LLM
-      const repairPrompt = buildRepairPrompt(currentMarkdown, lintResult.errors, jobMode);
-      const repairedCandidate = normalizeGeneratedPackage((await invokeLlm(repairPrompt, job.id, signal, undefined, undefined)).text, jobMode);
+      const useScopedLineRepair = canUseScopedLineRepair(lintResult.errors);
+      const repairPrompt = useScopedLineRepair
+        ? buildScopedLineRepairPrompt(currentMarkdown, lintResult.errors)
+        : buildRepairPrompt(currentMarkdown, lintResult.errors, jobMode);
+      if (!repairPrompt) {
+        throw new Error('Scoped line repair prompt could not be built from localized lint errors.');
+      }
+      const rawRepairResponse = (await invokeLlm(repairPrompt, job.id, signal, undefined, undefined)).text;
+      const rawRepairedCandidate = useScopedLineRepair
+        ? applyScopedLineRepair(currentMarkdown, rawRepairResponse, failedFieldKeys)
+        : normalizeGeneratedPackage(rawRepairResponse, jobMode);
+      const repairedCandidate = rawRepairedCandidate
+        ? preserveCoverLetterIfUnchanged(currentMarkdown, rawRepairedCandidate, lintResult.errors)
+        : null;
+      if (!repairedCandidate) {
+        updateStatusDetail(run, job.id, 'Repair candidate rejected — scoped line repair response was malformed');
+        lintResult = {
+          valid: false,
+          errors: [
+            ...lintResult.errors,
+            {
+              block: 'Package',
+              message: 'Repair response rejected: scoped line repair response was malformed.',
+              severity: 'error',
+            },
+          ],
+          fields: lintResult.fields,
+        };
+        continue;
+      }
       const candidateValidation = validateCandidatePackage(repairedCandidate);
       if (!candidateValidation.valid) {
         updateStatusDetail(run, job.id, `Repair candidate rejected — ${candidateValidation.reason}`);
@@ -1090,7 +1168,7 @@ async function executeJob(run: Run, job: Job, signal: AbortSignal): Promise<void
         continue;
       }
       currentMarkdown = !hasUnscopedErrors && failedFieldKeys.length > 0
-        ? replaceFailedFields(currentMarkdown, repairedCandidate, failedFieldKeys)
+        ? (useScopedLineRepair ? repairedCandidate : replaceFailedFields(currentMarkdown, repairedCandidate, failedFieldKeys))
         : repairedCandidate;
       lintResult = await lintMarkdownWithTypst(currentMarkdown, jobMode);
 
@@ -1234,6 +1312,19 @@ function buildCoverLetterOnlySection(options?: {
 }
 
 // Assemble the final PromptParts from system content + user intro
+// Universal length rule applied to every mode. Lines under 80 chars hard-fail
+// the linter; lines over 110 trigger a warning but Typst preflight is the
+// authoritative check on actual page-fit.
+const UNIVERSAL_LENGTH_RULE = `
+## Universal Length Rule (applies to every resume line)
+- The Summary line and EVERY section bullet must be 80–110 characters.
+- Lines under 80 characters HARD FAIL the linter — they lack the specificity
+  expected of resume copy. Pad short lines with concrete outcomes, metrics,
+  scope, or technical detail before submitting.
+- Lines over 110 characters get a warning; Typst preflight will measure actual
+  page width and tell you whether to trim.
+- Every line ends with a period.`.trim();
+
 function assembleModePromptParts(
   input: JobInput,
   system: string,
@@ -1253,7 +1344,10 @@ ${extraUserContent ? `\n${extraUserContent}\n` : ''}
 ${jobHeader}## Job Description
 ${input.jdText}${input.customInstructions ? `\n\n## ADDITIONAL INSTRUCTIONS\n${input.customInstructions}` : ''}`.trim();
 
-  return { system: system.trim(), user };
+  return {
+    system: `${system.trim()}\n\n${UNIVERSAL_LENGTH_RULE}`,
+    user,
+  };
 }
 
 // Prompt parts for API caching (system = stable, user = varies per job)
@@ -1346,7 +1440,7 @@ ${buildCoverLetterOnlySection({ includeDaylightPMM: true })}`;
 3 short paragraphs, ~150 words total.
 - Para 1: Name the company. Address their biggest need with proof.
 - Para 2: Surface a depth signal (built HIPAA platform, ships Rust apps, etc.)
-- Para 3: End with "Review the platform at gestallt.com, then set up a time for us to discuss [Company]'s [their core need]."
+- Para 3: End with "Review my portfolio at www.blankpagesyndrome.com, then set up a time for us to discuss [Company]'s [their core need]."
 Voice: Short sentences. Concrete proof. No AI slop ("excited to", "passionate about", etc.)
 
 
@@ -1392,7 +1486,7 @@ If the JD/application explicitly asks specific questions:
 ${EXPERIENCE_DATA.earlierExperience.displayLine}
 
 ## WAR Cover Letter
-Write 3 short paragraphs (~150 words total). Name the company in paragraph 1. Surface a depth signal in paragraph 2. End paragraph 3 with "Review the platform at gestallt.com, then set up a time for us to discuss [Company]'s [their core need]."`;
+Write 3 short paragraphs (~150 words total). Name the company in paragraph 1. Surface a depth signal in paragraph 2. End paragraph 3 with "Review my portfolio at www.blankpagesyndrome.com, then set up a time for us to discuss [Company]'s [their core need]."`;
 
   const system = `${factBanks}\n\n${systemRules}\n\n${outputFormat}`.trim();
 
@@ -1418,7 +1512,7 @@ ${buildFactBankSection(coverpro,
     'FOR PMM ROLES: EXACTLY 1 bullet. Show AI/LLM domain knowledge and cost optimization thinking.')}
 
 ${buildFactBankSection(daylight,
-    'ContextMax (Technical Project — developer onboarding as product marketing)',
+    'Traverse (Technical Project — developer onboarding as product marketing)',
     'FOR PMM ROLES: EXACTLY 1 bullet. Developer onboarding IS product marketing for devtools. Getting developers from "never heard of you" to "productive with your product."')}
 
 ${buildFactBankSection(labDemand,
@@ -1480,7 +1574,7 @@ Schema:
   "technicalProjects": {
     "gestallt": ["2 bullets"],
     "coverpro": ["1 bullet"],
-    "contextMax": ["1 bullet"]
+    "traverse": ["1 bullet"]
   },
   "independentConsultingExperience": ["2 bullets"],
   "focusDigitalExperience": ["3 bullets"],
@@ -1635,7 +1729,7 @@ ${buildFactBankSection(coverpro,
     'FOR DEVREL ROLES: EXACTLY 2 bullets. Multi-backend API integration and quality systems thinking. Both are relevant to developer tools companies.')}
 
 ${buildFactBankSection(daylight,
-    'ContextMax (Technical Project — knowledge transfer IS DevRel)',
+    'Traverse (Technical Project — knowledge transfer IS DevRel)',
     'FOR DEVREL ROLES: EXACTLY 1 bullet. DevRel IS knowledge transfer. Getting new contributors to 95% understanding from a single document.')}
 
 ${buildFactBankSection(focusDigital,
@@ -1698,8 +1792,8 @@ If the JD/application explicitly asks specific questions:
 ### CoverPro
 - Pick and re-write two CoverPro bullets from below. Show API integration depth and quality systems.
 
-### ContextMax
-- Pick and re-write one ContextMax/Daylight bullet from below. Frame as knowledge transfer expertise.
+### Traverse
+- Pick and re-write one Traverse/Daylight bullet from below. Frame as knowledge transfer expertise.
 
 ## Focus Digital Experience
 - Pick and re-write one Focus Digital bullet from below. Content architecture credibility signal only. No SEO metrics.
@@ -1726,7 +1820,7 @@ function buildDxePromptParts(input: JobInput): PromptParts {
   const factBanks = `## SOURCE MATERIAL (reframe for this JD, don't copy verbatim)
 
 ${buildFactBankSection(daylight,
-    'ContextMax (Technical Project — CENTERPIECE)',
+    'Traverse (Technical Project — CENTERPIECE)',
     'FOR DX ROLES: EXACTLY 2 bullets. 80% onboarding reduction IS developer experience. The Kickstart system designs "the first 10 minutes for a new contributor."')}
 
 ${buildFactBankSection(gestallt,
@@ -1767,7 +1861,7 @@ ${buildCoverLetterOnlySection()}`;
 ## COVER LETTER (DX WAR Format)
 
 3 short paragraphs, ~150 words total.
-- Para 1: Lead with ContextMax — 80% onboarding reduction. "The first 10 minutes" philosophy.
+- Para 1: Lead with Traverse — 80% onboarding reduction. "The first 10 minutes" philosophy.
 - Para 2: Preemptive debugging philosophy — find the friction, document the fix, make it findable.
 - Para 3: Builder + documenter hybrid. End with call-to-action referencing specific DX challenge from JD.
 Voice: Direct, empathetic toward developers. "Developers' time is expensive" as implicit throughline.
@@ -1790,8 +1884,8 @@ If the JD explicitly asks specific questions:
 
 ## Technical Projects
 
-### ContextMax
-- Pick and re-write two ContextMax bullets. Emphasize onboarding reduction and knowledge transfer design.
+### Traverse
+- Pick and re-write two Traverse bullets. Emphasize onboarding reduction and knowledge transfer design.
 
 ### Gestallt
 - Pick and re-write two Gestallt bullets. Emphasize developer-facing API design and pragmatic trade-offs.
@@ -1812,7 +1906,7 @@ If the JD explicitly asks specific questions:
 ${EXPERIENCE_DATA.earlierExperience.displayLine}
 
 ## WAR Cover Letter
-Write 3 short paragraphs (~150 words total). Name the company. Lead with ContextMax onboarding story.`;
+Write 3 short paragraphs (~150 words total). Name the company. Lead with Traverse onboarding story.`;
 
   const system = `${factBanks}\n\n${systemRules}\n\n${outputFormat}`.trim();
 
@@ -1827,7 +1921,7 @@ function buildIsdPromptParts(input: JobInput): PromptParts {
   const factBanks = `## SOURCE MATERIAL (reframe for this JD, don't copy verbatim)
 
 ${buildFactBankSection(daylight,
-    'ContextMax (Technical Project — CENTERPIECE, FULL TREATMENT)',
+    'Traverse (Technical Project — CENTERPIECE, FULL TREATMENT)',
     `FOR ISD ROLES: EXACTLY 3 bullets (unique — most of any mode). This project IS the job: context recovery, multi-project management, automated workflows. Three-layer architecture, 80% onboarding reduction, audit automation.
 Ordering: Architecture bullet first, then outcome, then execution.`)}
 
@@ -1870,9 +1964,9 @@ ${buildCoverLetterOnlySection()}`;
 ## COVER LETTER (ISD WAR Format)
 
 3 short paragraphs, ~150 words total.
-- Para 1: Lead with ContextMax — three-layer architecture, 80% onboarding reduction. "I've already built the solution your team needs."
+- Para 1: Lead with Traverse — three-layer architecture, 80% onboarding reduction. "I've already built the solution your team needs."
 - Para 2: Tools that outlive their builder. Reference DayLight's pure-function model and Gestallt's server-verified auth.
-- Para 3: Knowledge as product. End with "I'd like to walk through how ContextMax works and discuss [company]'s internal tooling challenges."
+- Para 3: Knowledge as product. End with "I'd like to walk through how Traverse works and discuss [company]'s internal tooling challenges."
 Voice: Pragmatic, outcome-focused, anti-over-engineering.
 
 ## JD QUESTION OVERRIDE (SUPERSEDES WAR STRUCTURE)
@@ -1893,8 +1987,8 @@ If the JD explicitly asks specific questions:
 
 ## Technical Projects
 
-### ContextMax
-- Pick and re-write three ContextMax bullets. Lead with architecture, then outcome, then execution. Full treatment.
+### Traverse
+- Pick and re-write three Traverse bullets. Lead with architecture, then outcome, then execution. Full treatment.
 
 ### Gestallt
 - Pick and re-write two Gestallt bullets. Emphasize access control systems for internal teams.
@@ -1915,7 +2009,7 @@ If the JD explicitly asks specific questions:
 ${EXPERIENCE_DATA.earlierExperience.displayLine}
 
 ## WAR Cover Letter
-Write 3 short paragraphs (~150 words total). Name the company. ContextMax MUST appear. Include one other project for code quality.`;
+Write 3 short paragraphs (~150 words total). Name the company. Traverse MUST appear. Include one other project for code quality.`;
 
   const system = `${factBanks}\n\n${systemRules}\n\n${outputFormat}`.trim();
 
@@ -2093,7 +2187,7 @@ ${Object.entries(POSITIONING_ANGLES).map(([key, angle]) => `**${key}**
 - Frame: "${angle.frame}"
 - Emphasize: ${angle.emphasize.join(', ')}`).join('\n\n')}
 
-State your selected angle at the start of generation (e.g., "Selected angle: fullStackSEO"). This frames the ENTIRE resume voice, not just individual bullets. The FD lens (above) then controls bullet-level vocabulary within this framing.
+Silently choose one positioning angle before writing. Use it to frame the resume voice, but do NOT include the selected angle, analysis, or any "Selected angle" text in the JSON output. The FD lens (above) then controls bullet-level vocabulary within this framing.
 `;
 
   // Skill-based employer emphasis (JD-dependent, goes in user message)
@@ -2144,7 +2238,7 @@ ${fdLenses}
 3 short paragraphs, ~150 words total.
 - Para 1: Name the company. Address their biggest need with proof.
 - Para 2: Surface a depth signal (built HIPAA platform, ships Rust apps, etc.)
-- Para 3: End with "Review the platform at gestallt.com, then set up a time for us to discuss [Company]'s [their core need]."
+- Para 3: End with "Review my portfolio at www.blankpagesyndrome.com, then set up a time for us to discuss [Company]'s [their core need]."
 Voice: Short sentences. Concrete proof. No AI slop ("excited to", "passionate about", etc.)
 
 
@@ -2216,13 +2310,31 @@ function buildRepairPrompt(markdown: string, errors: { block: string; message: s
   const hasMetrics = errors.some(e => e.message.includes('metric'));
   const hasHeaderMismatch = errors.some(e => e.message.includes('Rename to match'));
   const missingCoverLetter = errors.some((error) => error.code === 'cover-letter-missing');
+  const hasShortLines = errors.some((error) => error.code === 'bullet-too-short');
+  const hasLongLines = errors.some((error) => error.code === 'bullet-too-long');
 
   let repairGuidance = `## Format Rules
-- All bullets: end with period. Treat Typst width errors as authoritative, not the old character heuristic.
-- Cover letter: max 2 sentences per paragraph, no em-dashes (—), no AI slop phrases
-- Lear Marketing: no Toyota/eBay references
-- If the JD required specific questions, preserve that Q&A format under the WAR Cover Letter heading
-- Do NOT output sections with placeholder text like "Not applicable" — omit empty sections entirely`;
+- Summary line and every bullet: 80–110 characters, end with period.
+- Lines under 80 chars HARD FAIL — pad with concrete outcome, metric, scope, or technical detail.
+- Lines over 110 chars warn; Typst preflight is authoritative for actual page-fit.
+- Cover letter: max 2 sentences per paragraph, no em-dashes (—), no AI slop phrases.
+- Lear Marketing: no Toyota/eBay references.
+- If the JD required specific questions, preserve that Q&A format under the WAR Cover Letter heading.
+- Do NOT output sections with placeholder text like "Not applicable" — omit empty sections entirely.`;
+
+  if (hasShortLines) {
+    repairGuidance += `\n\n## Lines Too Short (HARD FAIL)
+Some lines fall under the 80-character minimum. They lack the specificity expected of resume copy.
+For each flagged line, add concrete substance — outcome, metric, scope, technical detail, or named system —
+until the line lands in the 80–110 character window. Do not pad with filler phrases ("worked on", "responsible for");
+add real information.`;
+  }
+
+  if (hasLongLines) {
+    repairGuidance += `\n\n## Lines Too Long
+Some lines exceed the 110-character soft cap. Tighten wording where you can; if Typst preflight has not flagged
+them as wrapping, the line is fine to leave. Trim only if both this rule and a Typst width error fire on the same line.`;
+  }
 
   if (targetedFields.length > 0) {
     repairGuidance += `\n\n## Locked Field Policy
@@ -2284,10 +2396,10 @@ No explanations, no reasoning, no "Changes made" notes, no "---" separators wrap
 Just the raw corrected markdown document.`;
 }
 
-function canUseScopedBulletRepair(errors: LintError[]): boolean {
+function canUseScopedLineRepair(errors: LintError[]): boolean {
   const hardErrors = errors.filter((error) => error.severity === 'error');
   if (hardErrors.length === 0) return false;
-  return hardErrors.every((error) => error.fieldKey?.includes(':bullet:'));
+  return hardErrors.every((error) => error.fieldKey && isScopedLineRepairField(error.fieldKey));
 }
 
 // Invoke LLM CLI and return output
@@ -2584,7 +2696,7 @@ Paragraph 2 (~50 words): Need 2 and how I solve it. Surface the surprising depth
 Paragraph 3 (~50 words): Identity + CTA. Reframe Need 1's core action into a natural identity phrase. Don't mirror the JD adjective-for-adjective; just substitute the idea.
   Then weave in reframes of Need 2 and Need 3.
   End with a REAL call to action that includes the appropriate portfolio URL:
-  - Technical/product/SaaS/platform JDs → "Review the platform at gestallt.com"
+  - Technical/product/SaaS/platform JDs → "Review my portfolio at www.blankpagesyndrome.com"
   - Content strategy/PMM/GTM/messaging JDs → "See the messaging work at daylightapps.com"
   Pick ONE URL based on the JD's primary need. Never include both.
 

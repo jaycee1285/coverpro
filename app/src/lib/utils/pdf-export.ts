@@ -13,7 +13,8 @@ export interface ExportFields {
   gestallt: string[];
   coverpro: string[];
   daylight: string[];
-  contextmax: string[];
+  traverse: string[];
+  openswarm: string[];
   ebay: string[];
   earlierExperience: string;
   coverLetter: string;
@@ -106,6 +107,10 @@ export function describeExportFailure(result: ExportResult): string {
     return stderr ? `${firstFailure.message} ${stderr}` : firstFailure.message;
   }
 
+  if (firstFailure.code === 'typst_unavailable_on_android') {
+    return `${firstFailure.message} Generate/copy the package on desktop until this build includes an Android Typst renderer.`;
+  }
+
   if (firstFailure.code === 'resume_compile_failed' || firstFailure.code === 'cover_letter_compile_failed') {
     const stderr = extractFailureStderr(firstFailure);
     return stderr ? `${firstFailure.message} ${stderr}` : firstFailure.message;
@@ -127,7 +132,8 @@ export function extractExportFields(markdown: string, jobTitle: string): ExportF
     gestallt: [],
     coverpro: [],
     daylight: [],
-    contextmax: [],
+    traverse: [],
+    openswarm: [],
     ebay: [],
     earlierExperience: 'Earlier: Product Copywriter, Toyota (via agency) | Lead Content Strategist, eBay | Content Writer, Brafton',
     coverLetter: '',
@@ -162,8 +168,10 @@ export function extractExportFields(markdown: string, jobTitle: string): ExportF
       fields.coverpro = section.bullets.map(b => b.text);
     } else if (section.employerTag === 'daylight') {
       fields.daylight = section.bullets.map(b => b.text);
-    } else if (section.employerTag === 'contextmax') {
-      fields.contextmax = section.bullets.map(b => b.text);
+    } else if (section.employerTag === 'traverse') {
+      fields.traverse = section.bullets.map(b => b.text);
+    } else if (section.employerTag === 'openswarm') {
+      fields.openswarm = section.bullets.map(b => b.text);
     } else if (section.employerTag === 'ebay') {
       fields.ebay = section.bullets.map(b => b.text);
     } else if (section.employerTag === 'earlier-experience') {
@@ -195,7 +203,8 @@ function buildBulletMeasureInputs(fields: ExportFields): Array<TypstBulletMeasur
     { block: 'Gestallt', bullets: fields.gestallt },
     { block: 'CoverPro', bullets: fields.coverpro },
     { block: 'DayLight', bullets: fields.daylight },
-    { block: 'ContextMax', bullets: fields.contextmax },
+    { block: 'Traverse', bullets: fields.traverse },
+    { block: 'OpenSwarm', bullets: fields.openswarm },
     { block: 'eBay Experience', bullets: fields.ebay },
   ];
 
@@ -227,7 +236,8 @@ export function buildExportData(fields: ExportFields) {
       gestallt: fields.gestallt,
       coverpro: fields.coverpro,
       daylight: fields.daylight,
-      contextmax: fields.contextmax,
+      traverse: fields.traverse,
+      openswarm: fields.openswarm,
       ebay: fields.ebay,
       earlierExperience: fields.earlierExperience,
     },

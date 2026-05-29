@@ -2,7 +2,7 @@
 // Reads structured JSON data and produces a single-page resume PDF.
 // Usage: typst compile resume.typ output.pdf --root / --input data=/path/to/data.json
 
-#let data = json(sys.inputs.at("data"))
+#let data = sys.inputs.at("data")
 #let content-width = 7.1in
 #let content-height = 10in
 
@@ -28,7 +28,7 @@
   if bullets.len() > 0 {
     v(1pt)
     for bullet in bullets {
-      [#h(10pt)●#h(5pt)#bullet \ ]
+      [#h(10pt)•#h(5pt)#bullet \ ]
     }
   }
   v(5pt)
@@ -58,10 +58,23 @@
 ]
 
 #let technical-projects-block = [
-  #if data.experience.gestallt.len() > 0 or data.experience.coverpro.len() > 0 or data.experience.daylight.len() > 0 or data.experience.contextmax.len() > 0 {
+  #if data.experience.openswarm.len() > 0 or data.experience.gestallt.len() > 0 or data.experience.coverpro.len() > 0 or data.experience.daylight.len() > 0 or data.experience.traverse.len() > 0 {
     v(6pt)
     align(center)[#text(size: 13pt, weight: "bold")[Technical Projects]]
     v(3pt)
+
+    if data.experience.openswarm.len() > 0 {
+      grid(
+        columns: (1fr, auto),
+        text(weight: "bold")[OpenSwarm \u{2014} Multi-Agent Orchestration with Mobile Remote Control],
+        text[Rust + GTK4 + Tauri],
+      )
+      v(1pt)
+      for bullet in data.experience.openswarm {
+        [#h(10pt)•#h(5pt)#bullet \ ]
+      }
+      v(3pt)
+    }
 
     if data.experience.gestallt.len() > 0 {
       grid(
@@ -71,7 +84,7 @@
       )
       v(1pt)
       for bullet in data.experience.gestallt {
-        [#h(10pt)●#h(5pt)#bullet \ ]
+        [#h(10pt)•#h(5pt)#bullet \ ]
       }
       v(3pt)
     }
@@ -84,20 +97,20 @@
       )
       v(1pt)
       for bullet in data.experience.coverpro {
-        [#h(10pt)●#h(5pt)#bullet \ ]
+        [#h(10pt)•#h(5pt)#bullet \ ]
       }
       v(3pt)
     }
 
-    if data.experience.contextmax.len() > 0 {
+    if data.experience.traverse.len() > 0 {
       grid(
         columns: (1fr, auto),
-        text(weight: "bold")[ContextMax \u{2014} AI-Driven Multi-Project Orchestration],
+        text(weight: "bold")[Traverse \u{2014} Markdown Locality Graph for Agent Code Search],
         text[Claude Code + Obsidian],
       )
       v(1pt)
-      for bullet in data.experience.contextmax {
-        [#h(10pt)●#h(5pt)#bullet \ ]
+      for bullet in data.experience.traverse {
+        [#h(10pt)•#h(5pt)#bullet \ ]
       }
       v(3pt)
     }
@@ -110,7 +123,7 @@
       )
       v(1pt)
       for bullet in data.experience.daylight {
-        [#h(10pt)●#h(5pt)#bullet \ ]
+        [#h(10pt)•#h(5pt)#bullet \ ]
       }
       v(3pt)
     }
@@ -162,9 +175,7 @@
   #align(center)[#text(size: 13pt, weight: "bold")[Education & Certifications]]
   #v(3pt)
   Bachelor of Arts, #text(weight: "bold")[Eckerd College]. #emph[History and Spanish]. Minor: #emph[Mathematics]
-  #h(12pt)
-  #sym.bar.v
-  #h(12pt)
+  #linebreak()
   HubSpot Inbound Marketing and Content Marketing
 ]
 
